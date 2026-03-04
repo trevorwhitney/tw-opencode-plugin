@@ -1,0 +1,35 @@
+{
+  "name": "tw-opencode-plugin",
+  "version": "0.1.0",
+  "description": "Personal OpenCode plugin — central home for skills, commands, and custom tools",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "deploy": "bash scripts/deploy.sh",
+    "dev": "tsc --watch"
+  },
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "plugin"
+  ],
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.2.16"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.9",
+    "typescript": "^5.8.2"
+  }
+}
