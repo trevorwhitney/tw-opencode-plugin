@@ -60,10 +60,19 @@ for agent_file in "${PLUGIN_DIR}/agents"/*.md; do
 	link_item "$agent_file" "${AGENTS_TARGET}/${agent_name}" "$agent_name"
 done
 
+# ── Plugin (built JS) ─────────────────────────────────────────
+PLUGINS_TARGET="${OPENCODE_DIR}/plugins"
+mkdir -p "$PLUGINS_TARGET"
+
+echo ""
+echo "Plugin:"
+link_item "${PLUGIN_DIR}/dist/index.js" \
+	"${PLUGINS_TARGET}/tw-opencode-plugin.js" \
+	"tw-opencode-plugin"
+
 # ── Superpowers ───────────────────────────────────────────────
 SUPERPOWERS_DIR="${OPENCODE_DIR}/superpowers"
 SUPERPOWERS_REPO="https://github.com/obra/superpowers.git"
-PLUGINS_TARGET="${OPENCODE_DIR}/plugins"
 
 echo ""
 echo "Superpowers:"
@@ -81,7 +90,6 @@ else
 fi
 
 # Register the superpowers plugin
-mkdir -p "$PLUGINS_TARGET"
 link_item "${SUPERPOWERS_DIR}/.opencode/plugins/superpowers.js" \
 	"${PLUGINS_TARGET}/superpowers.js" \
 	"superpowers plugin"
@@ -117,11 +125,9 @@ else
 	git clone --quiet "$WORKMUX_REPO" "$WORKMUX_DIR"
 fi
 
-# Register the workmux plugin (OpenCode uses ~/.config/opencode/plugin/)
-WORKMUX_PLUGIN_TARGET="${OPENCODE_DIR}/plugin"
-mkdir -p "$WORKMUX_PLUGIN_TARGET"
+# Register the workmux plugin (OpenCode discovers plugins from plugins/ plural)
 link_item "${WORKMUX_DIR}/.opencode/plugin/workmux-status.ts" \
-	"${WORKMUX_PLUGIN_TARGET}/workmux-status.ts" \
+	"${PLUGINS_TARGET}/workmux-status.ts" \
 	"workmux plugin"
 
 # Symlink workmux skills
