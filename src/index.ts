@@ -1,5 +1,4 @@
-import type { Plugin } from "@opencode-ai/plugin";
-import type { Part } from "@opencode-ai/sdk";
+import { type Plugin, tool } from "@opencode-ai/plugin";
 import { loadReviewConfig } from "./review/config.js";
 import { runReviewPipeline } from "./review/pipeline.js";
 import { codeReviewPrompts, planReviewPrompts } from "./review/prompts/index.js";
@@ -25,29 +24,37 @@ export const TwOpenCodePlugin: Plugin = async ({ $, client }) => {
       }
     },
 
-    "command.execute.before": async (input, output) => {
-      const prompts =
-        input.command === "code-review"
-          ? codeReviewPrompts
-          : input.command === "plan-review"
-            ? planReviewPrompts
-            : null;
+    tool: {
+      "review-pipeline": tool({
+        description:
+          "Run a dual-reviewer pipeline. Two agents independently review the target, " +
+          "then cross-examine each other's findings. Returns all review rounds for synthesis. " +
+          "Use this tool when the user runs /code-review or /plan-review.",
+        args: {
+          type: tool.schema.enum(["code-review", "plan-review"]),
+          target: tool.schema.string().describe(
+            "The review target — a PR URL, file paths, commit range, or description of what to review"
+          ),
+        },
+        async execute(args, context) {
+          const prompts =
+            args.type === "code-review" ? codeReviewPrompts : planReviewPrompts;
+          const config = await loadReviewConfig();
 
-      if (!prompts) return;
+          context.metadata({ title: "Starting review pipeline..." });
 
-      const config = await loadReviewConfig();
-      const synthesisPrompt = await runReviewPipeline(
-        client,
-        input.sessionID,
-        input.arguments,
-        prompts,
-        config,
-      );
+          const synthesisText = await runReviewPipeline(
+            client,
+            context.sessionID,
+            args.target,
+            prompts,
+            config,
+          );
 
-      // Part type requires id/sessionID/messageID but the hook runtime
-      // accepts partial objects for constructing new message parts.
-      output.parts.length = 0;
-      output.parts.push({ type: "text", text: synthesisPrompt } as Part);
+          context.metadata({ title: "Review pipeline complete" });
+          return synthesisText;
+        },
+      }),
     },
   };
 };
