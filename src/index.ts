@@ -48,7 +48,7 @@ export const TwOpenCodePlugin: Plugin = async ({ $, client }) => {
               args.target,
               prompts,
               config,
-              (phase) => context.metadata({ title: phase }),
+              (status) => context.metadata({ title: status }),
             );
 
             return synthesisText;
