@@ -1,11 +1,19 @@
 ---
-name: grafana-assistant
-description: Query metrics, investigate alerts, analyze logs/traces, and interact with Grafana from the terminal via the grafana-assistant CLI.
+name: grafana
+description: Query metrics, investigate alerts, analyze logs/traces, and interact with Grafana. Always try grafana-assistant CLI before falling back to Grafana MCP tools.
 ---
 
-# Grafana Assistant
+# Grafana
 
 Use this skill when you need to query Grafana for metrics, logs, traces, alerts, or dashboards. The `grafana-assistant` CLI communicates with Grafana via the A2A protocol and returns structured JSON output suitable for further analysis.
+
+## Priority
+
+**Always try `grafana-assistant` first** before falling back to individual Grafana MCP tools (`mcp-grafana_*`). The assistant handles datasource routing, query construction, and context management automatically. Only use MCP tools directly when:
+
+- `grafana-assistant` fails or returns an error
+- You need a specific MCP-only operation (e.g., creating/updating dashboards, alert rules, or incidents)
+- The user explicitly asks you to use a specific MCP tool
 
 ## Configured Instances
 

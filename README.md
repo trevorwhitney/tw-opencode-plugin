@@ -8,7 +8,8 @@ Personal OpenCode plugin — central home for skills, commands, and custom tools
 tw-opencode-plugin/
 ├── src/index.ts          # Plugin entry point (custom tools & hooks)
 ├── skills/               # SKILL.md files (deployed to ~/.config/opencode/skills/)
-│   ├── grafana-assistant/
+│   ├── github/
+│   ├── grafana/
 │   ├── fix-correctness-bug/
 │   ├── explain-correctness-failure/
 │   ├── debug-ci-failure/
