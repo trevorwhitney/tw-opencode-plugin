@@ -94,10 +94,26 @@ link_item "${SUPERPOWERS_DIR}/.opencode/plugins/superpowers.js" \
 	"${PLUGINS_TARGET}/superpowers.js" \
 	"superpowers plugin"
 
-# Symlink superpowers skills
-link_item "${SUPERPOWERS_DIR}/skills" \
-	"${SKILLS_TARGET}/superpowers" \
-	"superpowers skills"
+# Symlink superpowers skills individually (skip skills overridden by plugin)
+SUPERPOWERS_SKIP_SKILLS="subagent-driven-development writing-plans"
+
+if [ -L "${SKILLS_TARGET}/superpowers" ]; then
+	echo "  [migrate] removing old superpowers directory symlink"
+	rm "${SKILLS_TARGET}/superpowers"
+fi
+mkdir -p "${SKILLS_TARGET}/superpowers"
+
+for sp_skill_dir in "${SUPERPOWERS_DIR}/skills"/*/; do
+	[ -d "$sp_skill_dir" ] || continue
+	sp_skill_name="$(basename "$sp_skill_dir")"
+	case " $SUPERPOWERS_SKIP_SKILLS " in
+	*" $sp_skill_name "*)
+		echo "  [skip] superpowers/${sp_skill_name} (overridden by plugin)"
+		continue
+		;;
+	esac
+	link_item "$sp_skill_dir" "${SKILLS_TARGET}/superpowers/${sp_skill_name}" "superpowers/${sp_skill_name}"
+done
 
 # Symlink superpowers commands
 for cmd_file in "${SUPERPOWERS_DIR}/commands"/*.md; do
@@ -138,7 +154,7 @@ link_item "${WORKMUX_DIR}/skills" \
 # ── Cleanup stale symlinks ────────────────────────────────────
 echo ""
 echo "Cleanup:"
-for dir in "$COMMANDS_TARGET" "$SKILLS_TARGET" "$AGENTS_TARGET" "$PLUGINS_TARGET"; do
+for dir in "$COMMANDS_TARGET" "$SKILLS_TARGET" "${SKILLS_TARGET}/superpowers" "$AGENTS_TARGET" "$PLUGINS_TARGET"; do
 	[ -d "$dir" ] || continue
 	for entry in "$dir"/*; do
 		[ -L "$entry" ] || continue

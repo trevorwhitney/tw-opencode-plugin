@@ -63,7 +63,7 @@ OpenCode discovers slash commands from plugins registered in the Claude Code plu
 }
 ```
 
-The `"tw"` key must match the `name` field in `.claude-plugin/plugin.json`. Once registered, commands in `commands/` are available as `/tw:<command-name>` (e.g. `/tw:code-review-debate`).
+The `"tw"` key must match the `name` field in `.claude-plugin/plugin.json`. Once registered, commands in `commands/` are available as `/tw:<command-name>` (e.g. `/tw:code-review`).
 
 ### 4. Restart OpenCode
 
