@@ -2,4 +2,8 @@
 description: "Plan review — two critics independently critique, cross-examine, then synthesize"
 ---
 
-Orchestrated by plugin. Dispatching critics...
+Use the review-pipeline tool with type "plan-review" and the following target:
+
+$ARGUMENTS
+
+After the tool returns, synthesize the results into a final plan critique with a revised plan.
