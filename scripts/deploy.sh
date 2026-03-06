@@ -33,12 +33,55 @@ link_item() {
 	echo "  [link] ${name}"
 }
 
+# Copy a file to the target, replacing symlinks or existing files.
+# Used instead of link_item for commands, agents, and skills because
+# Bun.Glob.scan() (used by subtask2) does not follow symlinks.
+copy_item() {
+	local source="$1"
+	local target="$2"
+	local name="$3"
+
+	# Remove existing symlink first (leftover from previous link-based deploy)
+	if [ -L "$target" ]; then
+		rm "$target"
+	fi
+
+	if [ -f "$target" ] && cmp -s "$source" "$target"; then
+		echo "  [skip] ${name} (unchanged)"
+		return
+	fi
+
+	cp "$source" "$target"
+	echo "  [copy] ${name}"
+}
+
+# Recursively copy a directory, replacing symlinks or existing directories.
+copy_dir() {
+	local source="$1"
+	local target="$2"
+	local name="$3"
+
+	# Remove existing symlink first (leftover from previous link-based deploy)
+	if [ -L "$target" ]; then
+		rm "$target"
+	fi
+
+	# rsync with checksum so unchanged files are skipped
+	if command -v rsync &>/dev/null; then
+		rsync -rc --delete "${source%/}/" "${target%/}/"
+	else
+		rm -rf "$target"
+		cp -R "${source%/}" "$target"
+	fi
+	echo "  [copy] ${name}"
+}
+
 echo ""
 echo "Skills:"
 mkdir -p "$SKILLS_TARGET"
 for skill_dir in "${PLUGIN_DIR}/skills"/*/; do
 	skill_name="$(basename "$skill_dir")"
-	link_item "$skill_dir" "${SKILLS_TARGET}/${skill_name}" "$skill_name"
+	copy_dir "$skill_dir" "${SKILLS_TARGET}/${skill_name}" "$skill_name"
 done
 
 echo ""
@@ -47,7 +90,7 @@ mkdir -p "$COMMANDS_TARGET"
 for cmd_file in "${PLUGIN_DIR}/commands"/*.md; do
 	[ -f "$cmd_file" ] || continue
 	cmd_name="$(basename "$cmd_file")"
-	link_item "$cmd_file" "${COMMANDS_TARGET}/${cmd_name}" "$cmd_name"
+	copy_item "$cmd_file" "${COMMANDS_TARGET}/${cmd_name}" "$cmd_name"
 done
 
 echo ""
@@ -57,7 +100,7 @@ mkdir -p "$AGENTS_TARGET"
 for agent_file in "${PLUGIN_DIR}/agents"/*.md; do
 	[ -f "$agent_file" ] || continue
 	agent_name="$(basename "$agent_file")"
-	link_item "$agent_file" "${AGENTS_TARGET}/${agent_name}" "$agent_name"
+	copy_item "$agent_file" "${AGENTS_TARGET}/${agent_name}" "$agent_name"
 done
 
 # ── Plugin (built JS) ─────────────────────────────────────────
@@ -94,7 +137,7 @@ link_item "${SUPERPOWERS_DIR}/.opencode/plugins/superpowers.js" \
 	"${PLUGINS_TARGET}/superpowers.js" \
 	"superpowers plugin"
 
-# Symlink superpowers skills individually (skip skills overridden by plugin)
+# Copy superpowers skills individually (skip skills overridden by plugin)
 SUPERPOWERS_SKIP_SKILLS="subagent-driven-development writing-plans"
 
 if [ -L "${SKILLS_TARGET}/superpowers" ]; then
@@ -112,14 +155,14 @@ for sp_skill_dir in "${SUPERPOWERS_DIR}/skills"/*/; do
 		continue
 		;;
 	esac
-	link_item "$sp_skill_dir" "${SKILLS_TARGET}/superpowers/${sp_skill_name}" "superpowers/${sp_skill_name}"
+	copy_dir "$sp_skill_dir" "${SKILLS_TARGET}/superpowers/${sp_skill_name}" "superpowers/${sp_skill_name}"
 done
 
-# Symlink superpowers commands
+# Copy superpowers commands
 for cmd_file in "${SUPERPOWERS_DIR}/commands"/*.md; do
 	[ -f "$cmd_file" ] || continue
 	cmd_name="$(basename "$cmd_file")"
-	link_item "$cmd_file" "${COMMANDS_TARGET}/${cmd_name}" "superpowers: ${cmd_name}"
+	copy_item "$cmd_file" "${COMMANDS_TARGET}/${cmd_name}" "superpowers: ${cmd_name}"
 done
 
 # ── Workmux ───────────────────────────────────────────────────
@@ -146,8 +189,8 @@ link_item "${WORKMUX_DIR}/.opencode/plugin/workmux-status.ts" \
 	"${PLUGINS_TARGET}/workmux-status.ts" \
 	"workmux plugin"
 
-# Symlink workmux skills
-link_item "${WORKMUX_DIR}/skills" \
+# Copy workmux skills
+copy_dir "${WORKMUX_DIR}/skills" \
 	"${SKILLS_TARGET}/workmux" \
 	"workmux skills"
 

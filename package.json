@@ -18,7 +18,8 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "deploy": "bash scripts/deploy.sh",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "prepare": "husky"
   },
   "keywords": [
     "opencode",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.13.9",
+    "husky": "^9.1.7",
     "typescript": "^5.8.2"
   }
 }
