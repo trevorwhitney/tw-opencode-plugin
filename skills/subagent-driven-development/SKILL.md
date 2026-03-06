@@ -95,15 +95,11 @@ digraph process {
 
 ## Final Code Review
 
-After all tasks are complete, run a multi-model adversarial code review of the entire implementation.
+After all tasks are complete, run a multi-model critical code review of the entire implementation.
 
 **Run:** `/code-review` with the full `git diff` of all changes since the plan started (use the base commit SHA captured at the start).
 
-The `/code-review` command dispatches two reviewer models (Opus and Codex) in a structured debate:
-1. Reviewer A performs initial review (bugs, security, performance, design, complexity)
-2. Reviewer B challenges every finding
-3. Two rounds of rebuttal produce surviving findings
-4. Synthesis produces final review with only findings that survived scrutiny
+The `/code-review` command has it's own logic, just run it as instructed and wait for the response.
 
 **After the debate completes:**
 - If there are surviving findings, dispatch an implementer subagent to fix them
@@ -220,7 +216,7 @@ Done!
 **Quality gates:**
 - Self-review catches issues before handoff
 - Two-stage per-task review: spec compliance, then code quality
-- Multi-model adversarial final code review (findings must survive cross-examination)
+- Multi-model critical final code review (findings must survive cross-examination)
 - Review loops ensure fixes actually work
 - Spec compliance prevents over/under-building
 - Code quality ensures implementation is well-built

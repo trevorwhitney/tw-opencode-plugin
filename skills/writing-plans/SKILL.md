@@ -114,17 +114,13 @@ git commit -m "feat: add specific feature"
 
 ## Plan Review
 
-After saving the plan, run a multi-model adversarial review before offering execution choices.
+After saving the plan, run a multi-model critical review before offering execution choices.
 
 **Run:** `/plan-review` with the full plan text as the argument.
 
-The `/plan-review` command dispatches two critic models (Opus and Codex) in a structured debate:
-1. Critic A performs initial critique (bloat, scope creep, YAGNI, complexity, gaps)
-2. Critic B challenges every finding
-3. Two rounds of rebuttal produce surviving findings
-4. Synthesis produces a revised plan
+The `/plan-review` command has it's own logic, just run it as instructed and wait for the response.
 
-**After the debate completes:**
+**After the review completes:**
 - If the revised plan has meaningful changes, update `docs/plans/<filename>.md` with the revised version and commit
 - If the original plan was already lean, note that and proceed
 - Either way, continue to Execution Handoff
