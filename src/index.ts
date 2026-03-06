@@ -41,21 +41,15 @@ export const TwOpenCodePlugin: Plugin = async ({ $, client }) => {
             args.type === "code-review" ? codeReviewPrompts : planReviewPrompts;
           const config = await loadReviewConfig();
 
-          try {
-            const synthesisText = await runReviewPipeline(
-              client,
-              context.sessionID,
-              args.target,
-              prompts,
-              config,
-              (status) => context.metadata({ title: status }),
-            );
+          const synthesisText = await runReviewPipeline(
+            client,
+            context.sessionID,
+            args.target,
+            prompts,
+            config,
+          );
 
-            return synthesisText;
-          } catch (err) {
-            context.metadata({ title: "Review pipeline failed" });
-            throw err;
-          }
+          return synthesisText;
         },
       }),
     },
