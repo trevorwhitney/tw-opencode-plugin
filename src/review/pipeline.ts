@@ -39,19 +39,23 @@ export async function runReviewPipeline(
   target: string,
   prompts: PromptSet,
   config: ReviewConfig,
+  onPhase?: (phase: string) => void,
 ): Promise<string> {
   // Phase 1: parallel independent reviews
+  onPhase?.("Round 1: Independent reviews in progress...");
   const [r1a, r1b] = await Promise.all([
     runSubagent(client, sessionID, config.agentA, "Round 1 — Reviewer A", prompts.round1A(target)),
     runSubagent(client, sessionID, config.agentB, "Round 1 — Reviewer B", prompts.round1B(target)),
   ]);
 
   // Phase 2: parallel cross-reviews (each sees the other's Round 1)
+  onPhase?.("Round 2: Cross-reviews in progress...");
   const [r2a, r2b] = await Promise.all([
     runSubagent(client, sessionID, config.agentA, "Round 2 — Reviewer A", prompts.round2A(r1a.text, r1b.text)),
     runSubagent(client, sessionID, config.agentB, "Round 2 — Reviewer B", prompts.round2B(r1a.text, r1b.text)),
   ]);
 
   // Phase 3: build synthesis prompt
+  onPhase?.("Building synthesis...");
   return prompts.synthesis(r1a.text, r1b.text, r2a.text, r2b.text);
 }
