@@ -165,34 +165,23 @@ for cmd_file in "${SUPERPOWERS_DIR}/commands"/*.md; do
 	copy_item "$cmd_file" "${COMMANDS_TARGET}/${cmd_name}" "superpowers: ${cmd_name}"
 done
 
-# ── Workmux ───────────────────────────────────────────────────
-WORKMUX_DIR="${OPENCODE_DIR}/workmux"
-WORKMUX_REPO="https://github.com/raine/workmux.git"
-
-echo ""
-echo "Workmux:"
-
-if [ -d "$WORKMUX_DIR/.git" ]; then
-	echo "  [update] pulling latest workmux..."
-	git -C "$WORKMUX_DIR" pull --ff-only --quiet
-else
-	if [ -e "$WORKMUX_DIR" ]; then
-		echo "  [backup] ${WORKMUX_DIR} -> ${WORKMUX_DIR}.bak"
-		mv "$WORKMUX_DIR" "${WORKMUX_DIR}.bak"
-	fi
-	echo "  [clone] cloning workmux..."
-	git clone --quiet "$WORKMUX_REPO" "$WORKMUX_DIR"
+# ── Workmux (legacy cleanup) ─────────────────────────────────
+# Workmux status and commands are now integrated into tw-opencode-plugin.
+# Clean up artifacts from the previous deploy approach.
+if [ -L "${PLUGINS_TARGET}/workmux-status.ts" ]; then
+	echo "  [remove] legacy workmux-status.ts plugin"
+	rm "${PLUGINS_TARGET}/workmux-status.ts"
 fi
-
-# Register the workmux plugin (OpenCode discovers plugins from plugins/ plural)
-link_item "${WORKMUX_DIR}/.opencode/plugin/workmux-status.ts" \
-	"${PLUGINS_TARGET}/workmux-status.ts" \
-	"workmux plugin"
-
-# Copy workmux skills
-copy_dir "${WORKMUX_DIR}/skills" \
-	"${SKILLS_TARGET}/workmux" \
-	"workmux skills"
+if [ -d "${SKILLS_TARGET}/workmux" ]; then
+	echo "  [remove] legacy workmux skills directory"
+	rm -rf "${SKILLS_TARGET}/workmux"
+fi
+for cmd in coordinator merge open-pr rebase worktree; do
+	if [ -f "${COMMANDS_TARGET}/${cmd}.md" ]; then
+		echo "  [remove] legacy workmux command: ${cmd}.md"
+		rm "${COMMANDS_TARGET}/${cmd}.md"
+	fi
+done
 
 # ── Cleanup stale symlinks ────────────────────────────────────
 echo ""

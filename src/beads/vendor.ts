@@ -1,74 +1,12 @@
-import { readFile, readdir } from "node:fs/promises";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import type { Config } from "@opencode-ai/sdk";
+import {
+  parseMarkdownWithFrontmatter,
+  createVendorHelpers,
+} from "../shared/vendor-utils.js";
 
-// ---------------------------------------------------------------------------
-// Vendor directory helpers
-// ---------------------------------------------------------------------------
-
-function getVendorDir(): string {
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  return path.join(__dirname, "vendor");
-}
-
-// ---------------------------------------------------------------------------
-// Markdown + frontmatter parsing
-// ---------------------------------------------------------------------------
-
-interface ParsedMarkdown {
-  frontmatter: Record<string, string | undefined>;
-  body: string;
-}
-
-function parseMarkdownWithFrontmatter(content: string): ParsedMarkdown | null {
-  const frontmatterRegex = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/;
-  const match = content.match(frontmatterRegex);
-  if (!match) return null;
-  const frontmatterStr = match[1];
-  const body = match[2];
-  if (frontmatterStr === undefined || body === undefined) return null;
-  const frontmatter: Record<string, string | undefined> = {};
-  for (const line of frontmatterStr.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const colonIndex = trimmed.indexOf(":");
-    if (colonIndex === -1) continue;
-    const key = trimmed.slice(0, colonIndex).trim();
-    let value = trimmed.slice(colonIndex + 1).trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-    if (value === "[]") value = "";
-    frontmatter[key] = value;
-  }
-  return { frontmatter, body: body.trim() };
-}
-
-// ---------------------------------------------------------------------------
-// Filesystem helpers
-// ---------------------------------------------------------------------------
-
-async function readVendorFile(relativePath: string): Promise<string | null> {
-  try {
-    const fullPath = path.join(getVendorDir(), relativePath);
-    return await readFile(fullPath, "utf-8");
-  } catch {
-    return null;
-  }
-}
-
-async function listVendorFiles(relativePath: string): Promise<string[]> {
-  try {
-    const fullPath = path.join(getVendorDir(), relativePath);
-    return await readdir(fullPath);
-  } catch {
-    return [];
-  }
-}
+const { readVendorFile, listVendorFiles } = createVendorHelpers(
+  import.meta.url,
+);
 
 // ---------------------------------------------------------------------------
 // String constants

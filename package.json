@@ -15,10 +15,10 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc && rm -rf dist/beads/vendor && mkdir -p dist/beads && cp -r src/beads/vendor dist/beads/vendor",
+    "build": "bash scripts/build.sh",
     "typecheck": "tsc --noEmit",
     "deploy": "bash scripts/deploy.sh",
-    "dev": "tsc --watch",
+    "dev": "bash scripts/build.sh && tsc --watch",
     "prepare": "husky"
   },
   "keywords": [

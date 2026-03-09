@@ -9,11 +9,7 @@ import {
   createBeadsContextManager,
   BEADS_AWARENESS,
 } from "./beads/index.js";
-
-// Patch: workmux's built-in plugin listens for the v1 SDK event name
-// "permission.updated", but OpenCode >=1.x emits "permission.asked".
-// This plugin fills that gap so `workmux set-window-status waiting`
-// fires when OpenCode needs user input.
+import { loadCommands as loadWorkmuxCommands } from "./workmux/index.js";
 
 // ---------------------------------------------------------------------------
 // Tool priority rules — injected into the system prompt so the model always
@@ -58,9 +54,10 @@ When querying Grafana for metrics, logs, traces, alerts, or dashboards:
 </tool-priority-rules>`;
 
 export const TwOpenCodePlugin: Plugin = async ({ $, client }) => {
-  const [beadsCommands, beadsAgents] = await Promise.all([
+  const [beadsCommands, beadsAgents, workmuxCommands] = await Promise.all([
     loadCommands(),
     loadAgent(),
+    loadWorkmuxCommands(),
   ]);
   const beads = createBeadsContextManager(client, $);
 
@@ -79,13 +76,25 @@ export const TwOpenCodePlugin: Plugin = async ({ $, client }) => {
     event: async ({ event }) => {
       const type = event.type as string;
       switch (type) {
+        case "session.status": {
+          const props = event.properties as
+            | { status?: { type?: string } }
+            | undefined;
+          if (props?.status?.type === "busy") {
+            await $`workmux set-window-status working`.quiet().nothrow();
+          }
+          break;
+        }
         case "permission.asked":
         case "question.asked":
-          await $`workmux set-window-status waiting`.quiet();
+          await $`workmux set-window-status waiting`.quiet().nothrow();
           break;
-        case "permission.replied":
-        case "question.replied":
-          await $`workmux set-window-status working`.quiet();
+        case "session.idle":
+          await $`workmux set-window-status done`.quiet().nothrow();
+          break;
+        case "session.created":
+        case "global.disposed":
+          await $`workmux set-window-status clear`.quiet().nothrow();
           break;
         case "session.compacted":
           await beads.handleCompactionEvent(event as EventSessionCompacted);
@@ -124,7 +133,7 @@ export const TwOpenCodePlugin: Plugin = async ({ $, client }) => {
     },
 
     config: async (config) => {
-      config.command = { ...config.command, ...beadsCommands };
+      config.command = { ...config.command, ...beadsCommands, ...workmuxCommands };
       config.agent = { ...config.agent, ...beadsAgents };
     },
   };
