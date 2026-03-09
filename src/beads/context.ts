@@ -31,8 +31,18 @@ async function getSessionContext(
   return undefined;
 }
 
+async function isGitRepo($: BunShell): Promise<boolean> {
+  try {
+    const result = await $`git rev-parse --git-dir`.quiet();
+    return result.exitCode === 0;
+  } catch {
+    return false;
+  }
+}
+
 async function tryAutoInit($: BunShell): Promise<boolean> {
   try {
+    if (!(await isGitRepo($))) return false;
     const result = await $`bd init --stealth --quiet`.quiet();
     return result.exitCode === 0;
   } catch {
