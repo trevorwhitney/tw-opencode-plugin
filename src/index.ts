@@ -2,6 +2,13 @@ import { type Plugin, tool } from "@opencode-ai/plugin";
 import { loadReviewConfig } from "./review/config.js";
 import { runReviewPipeline } from "./review/pipeline.js";
 import { codeReviewPrompts, planReviewPrompts } from "./review/prompts/index.js";
+import type { EventSessionCompacted } from "@opencode-ai/sdk";
+import {
+  loadCommands,
+  loadAgent,
+  createBeadsContextManager,
+  BEADS_AWARENESS,
+} from "./beads/index.js";
 
 // Patch: workmux's built-in plugin listens for the v1 SDK event name
 // "permission.updated", but OpenCode >=1.x emits "permission.asked".
@@ -51,11 +58,22 @@ When querying Grafana for metrics, logs, traces, alerts, or dashboards:
 </tool-priority-rules>`;
 
 export const TwOpenCodePlugin: Plugin = async ({ $, client }) => {
+  const [beadsCommands, beadsAgents] = await Promise.all([
+    loadCommands(),
+    loadAgent(),
+  ]);
+  const beads = createBeadsContextManager(client, $);
+
   return {
     // Inject tool priority rules into every system prompt so the model
     // always knows to prefer CLI tools without needing to load a skill.
     "experimental.chat.system.transform": async (_input, output) => {
       (output.system ||= []).push(TOOL_PRIORITY_RULES);
+      output.system.push(BEADS_AWARENESS);
+    },
+
+    "chat.message": async (_input, output) => {
+      await beads.handleChatMessage(_input, output);
     },
 
     event: async ({ event }) => {
@@ -68,6 +86,9 @@ export const TwOpenCodePlugin: Plugin = async ({ $, client }) => {
         case "permission.replied":
         case "question.replied":
           await $`workmux set-window-status working`.quiet();
+          break;
+        case "session.compacted":
+          await beads.handleCompactionEvent(event as EventSessionCompacted);
           break;
       }
     },
@@ -100,6 +121,11 @@ export const TwOpenCodePlugin: Plugin = async ({ $, client }) => {
           return synthesisText;
         },
       }),
+    },
+
+    config: async (config) => {
+      config.command = { ...config.command, ...beadsCommands };
+      config.agent = { ...config.agent, ...beadsAgents };
     },
   };
 };
