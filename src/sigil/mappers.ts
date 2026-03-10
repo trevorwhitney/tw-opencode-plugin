@@ -12,7 +12,7 @@ export function mapGeneration(msg: AssistantMessage): GenerationResult {
       outputTokens: msg.tokens.output,
       reasoningTokens: msg.tokens.reasoning,
       cacheReadInputTokens: msg.tokens.cache.read,
-      cacheWriteInputTokens: msg.tokens.cache.write,
+      cacheCreationInputTokens: msg.tokens.cache.write,
     },
     responseModel: msg.modelID,
     stopReason: msg.finish,
