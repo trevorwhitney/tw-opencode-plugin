@@ -1,5 +1,6 @@
 import type { createOpencodeClient, TextPart } from "@opencode-ai/sdk";
-import type { PhaseResult, PromptSet, ReviewConfig } from "./types.js";
+import type { PhaseResult, PromptSet } from "./types.js";
+import type { ReviewConfig } from "../shared/config.js";
 
 type OpencodeClient = ReturnType<typeof createOpencodeClient>;
 
