@@ -1,5 +1,12 @@
 {
   "name": "tw",
   "version": "0.1.0",
-  "description": "Personal skills, commands, and tools"
+  "description": "Personal skills, commands, agents, and tools for OpenCode and Claude Code",
+  "author": {
+    "name": "Trevor Whitney"
+  },
+  "repository": "https://github.com/trevorwhitney/tw-opencode-plugin",
+  "skills": "./skills/",
+  "commands": "./commands/",
+  "agents": "./agents/"
 }
