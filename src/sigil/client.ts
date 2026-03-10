@@ -14,25 +14,42 @@ export function resolveEnvVars(value: string): string {
   });
 }
 
-function resolveAuth(auth: SigilAuthConfig): ResolvedAuth {
+type ResolvedTransport = {
+  auth: ResolvedAuth;
+  headers?: Record<string, string>;
+};
+
+function resolveAuth(auth: SigilAuthConfig): ResolvedTransport {
   switch (auth.mode) {
     case "bearer":
-      return { mode: "bearer", bearerToken: resolveEnvVars(auth.bearerToken) };
+      return { auth: { mode: "bearer", bearerToken: resolveEnvVars(auth.bearerToken) } };
     case "tenant":
-      return { mode: "tenant", tenantId: resolveEnvVars(auth.tenantId) };
+      return { auth: { mode: "tenant", tenantId: resolveEnvVars(auth.tenantId) } };
+    case "basic": {
+      // JS SDK doesn't support Basic auth natively — use
+      // mode "none" and inject the Authorization header manually.
+      const user = resolveEnvVars(auth.tenantId);
+      const pass = resolveEnvVars(auth.token);
+      const encoded = Buffer.from(`${user}:${pass}`).toString("base64");
+      return {
+        auth: { mode: "none" },
+        headers: { Authorization: `Basic ${encoded}` },
+      };
+    }
     case "none":
-      return { mode: "none" };
+      return { auth: { mode: "none" } };
   }
 }
 
 export function createSigilClient(config: SigilConfig): SigilClient | null {
   try {
-    const auth = resolveAuth(config.auth);
+    const transport = resolveAuth(config.auth);
     return new SigilClient({
       generationExport: {
         protocol: "http",
         endpoint: config.endpoint,
-        auth,
+        auth: transport.auth,
+        ...(transport.headers && { headers: transport.headers }),
       },
     });
   } catch {

@@ -28,18 +28,18 @@ export function mapError(
 ): Error {
   switch (error.name) {
     case "ProviderAuthError":
-      return new Error(`provider_auth: ${error.data.message}`);
+      return new Error("provider_auth");
     case "APIError":
-      return new Error(`api_error: ${error.data.statusCode ?? "unknown"} ${error.data.message}`);
+      return new Error(`api_error: ${error.data.statusCode ?? "unknown"}`);
     case "MessageOutputLengthError":
       return new Error("output_length_exceeded");
     case "MessageAbortedError":
-      return new Error(`aborted: ${error.data.message}`);
+      return new Error("aborted");
     case "UnknownError":
-      return new Error(`unknown: ${error.data.message}`);
+      return new Error("unknown_error");
     default: {
       const _exhaustive: never = error;
-      return new Error("unknown");
+      return new Error("unknown_error");
     }
   }
 }

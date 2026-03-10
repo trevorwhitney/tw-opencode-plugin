@@ -5,6 +5,7 @@ import { homedir } from "os";
 export type SigilAuthConfig =
   | { mode: "bearer"; bearerToken: string }
   | { mode: "tenant"; tenantId: string }
+  | { mode: "basic"; tenantId: string; token: string }
   | { mode: "none" };
 
 export type SigilConfig = {
@@ -13,8 +14,6 @@ export type SigilConfig = {
   auth: SigilAuthConfig;
   agentName?: string;
   agentVersion?: string;
-  captureInputs?: boolean;
-  captureOutputs?: boolean;
 };
 
 export type ReviewConfig = {

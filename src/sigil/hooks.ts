@@ -6,6 +6,11 @@ import { mapGeneration, mapError } from "./mappers.js";
 // Track recorded messages per session for dedup and cleanup
 const recordedMessages = new Map<string, Set<string>>();
 
+function buildAgentName(prefix: string | undefined, mode: string | undefined): string {
+  const base = prefix || "opencode";
+  return mode ? `${base}:${mode}` : base;
+}
+
 export async function handleEvent(
   sigil: SigilClient,
   config: SigilConfig,
@@ -33,7 +38,7 @@ export async function handleEvent(
     await sigil.startGeneration(
       {
         conversationId: assistantMsg.sessionID,
-        agentName: assistantMsg.mode || config.agentName || "opencode",
+        agentName: buildAgentName(config.agentName, assistantMsg.mode),
         agentVersion: config.agentVersion,
         model: { provider: assistantMsg.providerID, name: assistantMsg.modelID },
         startedAt: new Date(assistantMsg.time.created),
