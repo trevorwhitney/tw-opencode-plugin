@@ -5,8 +5,5 @@
   "author": {
     "name": "Trevor Whitney"
   },
-  "repository": "https://github.com/trevorwhitney/tw-opencode-plugin",
-  "skills": "./skills/",
-  "commands": "./commands/",
-  "agents": "./agents/"
+  "repository": "https://github.com/trevorwhitney/tw-opencode-plugin"
 }
