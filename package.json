@@ -27,6 +27,7 @@
     "plugin"
   ],
   "dependencies": {
+    "@grafana/sigil-sdk-js": "file:../../../../../private/tmp/sigil-sdk/sdks/js",
     "@opencode-ai/plugin": "^1.2.16"
   },
   "devDependencies": {
