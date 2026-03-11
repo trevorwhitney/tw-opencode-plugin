@@ -1,8 +1,3 @@
-export type ReviewConfig = {
-  agentA: string;
-  agentB: string;
-};
-
 export type PromptSet = {
   round1A: (target: string) => string;
   round1B: (target: string) => string;

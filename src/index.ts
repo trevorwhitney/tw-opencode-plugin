@@ -1,5 +1,7 @@
 import { type Plugin, tool } from "@opencode-ai/plugin";
 import { loadReviewConfig } from "./review/config.js";
+import { loadPluginConfig } from "./shared/config.js";
+import { createSigilHooks } from "./sigil/index.js";
 import { runReviewPipeline } from "./review/pipeline.js";
 import { codeReviewPrompts, planReviewPrompts } from "./review/prompts/index.js";
 import type { EventSessionCompacted } from "@opencode-ai/sdk";
@@ -61,6 +63,12 @@ export const TwOpenCodePlugin: Plugin = async ({ $, client }) => {
   ]);
   const beads = createBeadsContextManager(client, $);
 
+  const pluginConfig = await loadPluginConfig();
+  const sigilHooks = await createSigilHooks(
+    pluginConfig.sigil ?? { enabled: false, endpoint: "", auth: { mode: "none" } },
+    client,
+  );
+
   return {
     // Inject tool priority rules into every system prompt so the model
     // always knows to prefer CLI tools without needing to load a skill.
@@ -71,6 +79,7 @@ export const TwOpenCodePlugin: Plugin = async ({ $, client }) => {
 
     "chat.message": async (_input, output) => {
       await beads.handleChatMessage(_input, output);
+      sigilHooks?.chatMessage?.(_input, output);
     },
 
     event: async ({ event }) => {
@@ -82,6 +91,9 @@ export const TwOpenCodePlugin: Plugin = async ({ $, client }) => {
             | undefined;
           if (props?.status?.type === "busy") {
             await $`workmux set-window-status working`.quiet().nothrow();
+          }
+          if (props?.status?.type === "idle") {
+            await $`workmux set-window-status done`.quiet().nothrow();
           }
           break;
         }
@@ -100,6 +112,7 @@ export const TwOpenCodePlugin: Plugin = async ({ $, client }) => {
           await beads.handleCompactionEvent(event as EventSessionCompacted);
           break;
       }
+      await sigilHooks?.event?.({ event: event as { type: string; properties: unknown } });
     },
 
     tool: {

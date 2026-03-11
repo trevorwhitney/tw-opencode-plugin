@@ -19,7 +19,9 @@
     "typecheck": "tsc --noEmit",
     "deploy": "bash scripts/deploy.sh",
     "dev": "bash scripts/build.sh && tsc --watch",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [
     "opencode",
@@ -27,11 +29,13 @@
     "plugin"
   ],
   "dependencies": {
+    "@grafana/sigil-sdk-js": "file:../../../../../private/tmp/sigil-sdk/sdks/js",
     "@opencode-ai/plugin": "^1.2.16"
   },
   "devDependencies": {
     "@types/node": "^22.13.9",
     "husky": "^9.1.7",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vitest": "^4.0.18"
   }
 }
