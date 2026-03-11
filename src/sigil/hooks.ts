@@ -1,23 +1,48 @@
 import type { SigilClient } from "@grafana/sigil-sdk-js";
-import type { AssistantMessage } from "@opencode-ai/sdk";
+import type { AssistantMessage, UserMessage, Part } from "@opencode-ai/sdk";
+import type { PluginInput } from "@opencode-ai/plugin";
 import type { SigilConfig } from "../shared/config.js";
-import { mapGeneration, mapError } from "./mappers.js";
 import { Redactor } from "./redact.js";
+import { mapGeneration, mapError, mapToolDefinitions } from "./mappers.js";
 
-// Shared redactor instance for this module
-const redactor = new Redactor();
+type OpencodeClient = PluginInput["client"];
 
 // Track recorded messages per session for dedup and cleanup
 const recordedMessages = new Map<string, Set<string>>();
+
+// Pending generation store: user-side data captured before assistant responds
+type PendingGeneration = {
+  systemPrompt: string | undefined;
+  userParts: Part[];
+  tools: Record<string, boolean> | undefined;
+};
+const pendingGenerations = new Map<string, PendingGeneration>();
 
 function buildAgentName(prefix: string | undefined, mode: string | undefined): string {
   const base = prefix || "opencode";
   return mode ? `${base}:${mode}` : base;
 }
 
+/**
+ * Called from the chat.message hook. Stores user-side data for later use
+ * when the assistant message completes.
+ */
+export function handleChatMessage(
+  input: { sessionID: string },
+  output: { message: UserMessage; parts: Part[] },
+): void {
+  pendingGenerations.set(input.sessionID, {
+    systemPrompt: (output.message as unknown as { system?: string }).system,
+    userParts: output.parts,
+    tools: (output.message as unknown as { tools?: Record<string, boolean> }).tools,
+  });
+}
+
 export async function handleEvent(
   sigil: SigilClient,
   config: SigilConfig,
+  client: OpencodeClient,
+  redactor: Redactor,
   event: { type: string; properties: unknown },
 ): Promise<void> {
   if (event.type !== "message.updated") return;
@@ -28,37 +53,82 @@ export async function handleEvent(
 
   const assistantMsg = msg as AssistantMessage;
 
-  // Only record terminal messages (has finish reason, error, or completed timestamp)
+  // Only record terminal messages
   const isTerminal = assistantMsg.finish || assistantMsg.error || assistantMsg.time.completed;
   if (!isTerminal) return;
 
-  // Dedup: skip if already recorded
+  // Dedup
   const sessionSet = recordedMessages.get(assistantMsg.sessionID) ?? new Set<string>();
   if (sessionSet.has(assistantMsg.id)) return;
   sessionSet.add(assistantMsg.id);
   recordedMessages.set(assistantMsg.sessionID, sessionSet);
 
+  // Look up pending generation (user-side data)
+  const pending = pendingGenerations.get(assistantMsg.sessionID);
+
+  // Fetch assistant parts via REST
+  let assistantParts: Part[] = [];
   try {
-    await sigil.startGeneration(
-      {
+    const response = await client.session.message({
+      path: { id: assistantMsg.sessionID, messageID: assistantMsg.id },
+    });
+    assistantParts = response.data?.parts ?? [];
+  } catch {
+    // REST fetch failed — fall back to metadata-only
+  }
+
+  const contentCapture = config.contentCapture ?? true;
+
+  const seed = contentCapture
+    ? {
         conversationId: assistantMsg.sessionID,
         agentName: buildAgentName(config.agentName, assistantMsg.mode),
         agentVersion: config.agentVersion,
         model: { provider: assistantMsg.providerID, name: assistantMsg.modelID },
         startedAt: new Date(assistantMsg.time.created),
-      },
-      async (recorder) => {
-        if (assistantMsg.error) {
-          recorder.setCallError(mapError(assistantMsg.error));
-        } else {
-          // v1: no content capture — message.updated events don't carry parts
-          recorder.setResult(mapGeneration(assistantMsg, [], [], redactor));
-        }
-      },
-    );
+        systemPrompt: pending?.systemPrompt,
+        tools: mapToolDefinitions(pending?.tools),
+      }
+    : {
+        conversationId: assistantMsg.sessionID,
+        agentName: buildAgentName(config.agentName, assistantMsg.mode),
+        agentVersion: config.agentVersion,
+        model: { provider: assistantMsg.providerID, name: assistantMsg.modelID },
+        startedAt: new Date(assistantMsg.time.created),
+      };
+
+  try {
+    if (assistantMsg.error) {
+      await sigil.startGeneration(seed, async (recorder) => {
+        recorder.setCallError(mapError(assistantMsg.error!));
+      });
+    } else {
+      const result = contentCapture
+        ? mapGeneration(assistantMsg, pending?.userParts ?? [], assistantParts, redactor)
+        : {
+            output: [] as [],
+            usage: {
+              inputTokens: assistantMsg.tokens.input,
+              outputTokens: assistantMsg.tokens.output,
+              reasoningTokens: assistantMsg.tokens.reasoning,
+              cacheReadInputTokens: assistantMsg.tokens.cache.read,
+              cacheCreationInputTokens: assistantMsg.tokens.cache.write,
+            },
+            responseModel: assistantMsg.modelID,
+            stopReason: assistantMsg.finish,
+            completedAt: assistantMsg.time.completed ? new Date(assistantMsg.time.completed) : undefined,
+            metadata: { cost: assistantMsg.cost },
+          };
+      await sigil.startGeneration(seed, async (recorder) => {
+        recorder.setResult(result);
+      });
+    }
   } catch {
     // Sigil recording failure should never break the plugin
   }
+
+  // Clean up pending generation
+  pendingGenerations.delete(assistantMsg.sessionID);
 }
 
 export async function handleLifecycle(
@@ -80,6 +150,7 @@ export async function handleLifecycle(
     const sessionId = properties?.info?.id;
     if (sessionId) {
       recordedMessages.delete(sessionId);
+      pendingGenerations.delete(sessionId);
     }
   }
 
