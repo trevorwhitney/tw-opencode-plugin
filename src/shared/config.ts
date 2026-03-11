@@ -14,6 +14,7 @@ export type SigilConfig = {
   auth: SigilAuthConfig;
   agentName?: string;
   agentVersion?: string;
+  contentCapture?: boolean; // default: true
 };
 
 export type ReviewConfig = {
