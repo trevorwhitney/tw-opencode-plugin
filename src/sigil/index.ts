@@ -1,19 +1,27 @@
 import type { SigilConfig } from "../shared/config.js";
+import type { PluginInput } from "@opencode-ai/plugin";
 import { createSigilClient } from "./client.js";
-import { handleEvent, handleLifecycle } from "./hooks.js";
+import { handleEvent, handleLifecycle, handleChatMessage } from "./hooks.js";
+import { Redactor } from "./redact.js";
 
 export type { SigilConfig } from "../shared/config.js";
 
+type OpencodeClient = PluginInput["client"];
+
 export type SigilHooks = {
   event: (input: { event: { type: string; properties: unknown } }) => Promise<void>;
+  chatMessage: (
+    input: { sessionID: string },
+    output: { message: any; parts: any[] },
+  ) => void;
 };
 
 export async function createSigilHooks(
   config: SigilConfig,
+  client: OpencodeClient,
 ): Promise<SigilHooks | null> {
   if (!config.enabled) return null;
 
-  // Validate required config
   if (!config.endpoint) {
     console.warn("[sigil] endpoint is required when enabled -- skipping Sigil initialization");
     return null;
@@ -22,16 +30,19 @@ export async function createSigilHooks(
   const sigil = createSigilClient(config);
   if (!sigil) return null;
 
-  // Safety net: ensure shutdown on process exit even if global.disposed
-  // event is not received (it's an untyped runtime convention, not in the SDK Event union)
+  const redactor = new Redactor();
+
   process.on("beforeExit", () => {
     sigil.shutdown().catch(() => {});
   });
 
   return {
     event: async (input) => {
-      await handleEvent(sigil, config, input.event);
+      await handleEvent(sigil, config, client, redactor, input.event);
       await handleLifecycle(sigil, input.event);
+    },
+    chatMessage: (input, output) => {
+      handleChatMessage(input, output);
     },
   };
 }

@@ -66,6 +66,7 @@ export const TwOpenCodePlugin: Plugin = async ({ $, client }) => {
   const pluginConfig = await loadPluginConfig();
   const sigilHooks = await createSigilHooks(
     pluginConfig.sigil ?? { enabled: false, endpoint: "", auth: { mode: "none" } },
+    client,
   );
 
   return {
@@ -78,6 +79,7 @@ export const TwOpenCodePlugin: Plugin = async ({ $, client }) => {
 
     "chat.message": async (_input, output) => {
       await beads.handleChatMessage(_input, output);
+      sigilHooks?.chatMessage?.(_input, output);
     },
 
     event: async ({ event }) => {
@@ -89,6 +91,9 @@ export const TwOpenCodePlugin: Plugin = async ({ $, client }) => {
             | undefined;
           if (props?.status?.type === "busy") {
             await $`workmux set-window-status working`.quiet().nothrow();
+          }
+          if (props?.status?.type === "idle") {
+            await $`workmux set-window-status done`.quiet().nothrow();
           }
           break;
         }
