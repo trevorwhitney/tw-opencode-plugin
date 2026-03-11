@@ -56,6 +56,20 @@ MIIEpAIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF8PbnGy5AhEiS0C5
       expect(result).toContain("[REDACTED:");
     });
 
+    it("redacts modern OpenAI project keys (sk-proj-)", () => {
+      const input = "sk-proj-" + "a".repeat(50);
+      const result = redactor.redact(input);
+      expect(result).not.toContain("sk-proj-");
+      expect(result).toContain("[REDACTED:");
+    });
+
+    it("redacts OpenAI service account keys (sk-svcacct-)", () => {
+      const input = "sk-svcacct-" + "b".repeat(50);
+      const result = redactor.redact(input);
+      expect(result).not.toContain("sk-svcacct-");
+      expect(result).toContain("[REDACTED:");
+    });
+
     it("redacts env file secret values (tier 2)", () => {
       const input = "DATABASE_PASSWORD=hunter2secret123";
       const result = redactor.redact(input);
