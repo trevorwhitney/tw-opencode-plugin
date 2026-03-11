@@ -2,6 +2,10 @@ import type { SigilClient } from "@grafana/sigil-sdk-js";
 import type { AssistantMessage } from "@opencode-ai/sdk";
 import type { SigilConfig } from "../shared/config.js";
 import { mapGeneration, mapError } from "./mappers.js";
+import { Redactor } from "./redact.js";
+
+// Shared redactor instance for this module
+const redactor = new Redactor();
 
 // Track recorded messages per session for dedup and cleanup
 const recordedMessages = new Map<string, Set<string>>();
@@ -47,7 +51,8 @@ export async function handleEvent(
         if (assistantMsg.error) {
           recorder.setCallError(mapError(assistantMsg.error));
         } else {
-          recorder.setResult(mapGeneration(assistantMsg));
+          // v1: no content capture — message.updated events don't carry parts
+          recorder.setResult(mapGeneration(assistantMsg, [], [], redactor));
         }
       },
     );
