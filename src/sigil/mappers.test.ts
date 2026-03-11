@@ -126,8 +126,8 @@ describe("mapToolDefinitions", () => {
   });
 });
 
-describe("mapGeneration (with content)", () => {
-  it("includes input and output messages", () => {
+describe("mapGeneration", () => {
+  it("maps usage tokens and cost from assistant message", () => {
     const msg = makeAssistantMsg();
     const userParts = [
       { id: "p1", sessionID: "s1", messageID: "m1", type: "text" as const, text: "hello" },
@@ -142,7 +142,7 @@ describe("mapGeneration (with content)", () => {
     expect(result.metadata?.cost).toBe(0.01);
   });
 
-  it("preserves metadata fields from existing mapper", () => {
+  it("maps response model, stop reason, and completion timestamp from assistant message", () => {
     const msg = makeAssistantMsg();
     const result = mapGeneration(msg, [], [], redactor);
     expect(result.responseModel).toBe("claude-opus-4-20250514");

@@ -31,14 +31,10 @@ export function handleChatMessage(
   input: { sessionID: string },
   output: { message: UserMessage; parts: Part[] },
 ): void {
-  // UserMessage has `system` and `tools` at runtime but the SDK types don't expose them.
-  // Cast through `unknown` to access these undocumented fields. If the SDK adds proper
-  // types, replace these casts. Gracefully produces `undefined` if fields are absent.
-  const msg = output.message as unknown as { system?: string; tools?: Record<string, boolean> };
   pendingGenerations.set(input.sessionID, {
-    systemPrompt: msg.system,
+    systemPrompt: output.message.system,
     userParts: output.parts,
-    tools: msg.tools,
+    tools: output.message.tools,
   });
 }
 
