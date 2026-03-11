@@ -17,7 +17,7 @@ export type { GenerationResult };
 export function mapInputMessages(parts: Part[]): Message[] {
   const messages: Message[] = [];
   for (const part of parts) {
-    if (part.type === "text") {
+    if (part.type === "text" && part.text.trim().length > 0) {
       messages.push({
         role: "user",
         parts: [{ type: "text", text: part.text }],
@@ -33,17 +33,23 @@ export function mapOutputMessages(parts: Part[], redactor: Redactor): Message[] 
   for (const part of parts) {
     switch (part.type) {
       case "text": {
-        messages.push({
-          role: "assistant",
-          parts: [{ type: "text", text: redactor.redactLightweight(part.text) }],
-        });
+        const text = redactor.redactLightweight(part.text);
+        if (text.trim().length > 0) {
+          messages.push({
+            role: "assistant",
+            parts: [{ type: "text", text }],
+          });
+        }
         break;
       }
       case "reasoning": {
-        messages.push({
-          role: "assistant",
-          parts: [{ type: "thinking", thinking: redactor.redactLightweight(part.text) }],
-        });
+        const thinking = redactor.redactLightweight(part.text);
+        if (thinking.trim().length > 0) {
+          messages.push({
+            role: "assistant",
+            parts: [{ type: "thinking", thinking }],
+          });
+        }
         break;
       }
       case "tool": {

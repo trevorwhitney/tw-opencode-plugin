@@ -40,6 +40,18 @@ describe("mapInputMessages", () => {
     ] as Part[];
     expect(mapInputMessages(parts)).toHaveLength(0);
   });
+
+  it("skips text parts with empty or whitespace-only text", () => {
+    const parts = [
+      { id: "p1", sessionID: "s1", messageID: "m1", type: "text" as const, text: "" },
+      { id: "p2", sessionID: "s1", messageID: "m1", type: "text" as const, text: "   " },
+      { id: "p3", sessionID: "s1", messageID: "m1", type: "text" as const, text: "\n\t" },
+      { id: "p4", sessionID: "s1", messageID: "m1", type: "text" as const, text: "hello" },
+    ] as Part[];
+    const result = mapInputMessages(parts);
+    expect(result).toHaveLength(1);
+    expect(result[0].parts?.[0]).toEqual({ type: "text", text: "hello" });
+  });
 });
 
 describe("mapOutputMessages", () => {
@@ -87,6 +99,28 @@ describe("mapOutputMessages", () => {
     expect(result[0].parts?.[0].type).toBe("tool_call");
     expect(result[1].role).toBe("tool");
     expect(result[1].parts?.[0].type).toBe("tool_result");
+  });
+
+  it("skips text parts with empty or whitespace-only text", () => {
+    const parts = [
+      { id: "p1", sessionID: "s1", messageID: "m1", type: "text" as const, text: "" },
+      { id: "p2", sessionID: "s1", messageID: "m1", type: "text" as const, text: "   " },
+      { id: "p3", sessionID: "s1", messageID: "m1", type: "text" as const, text: "actual content" },
+    ] as Part[];
+    const result = mapOutputMessages(parts, redactor);
+    expect(result).toHaveLength(1);
+    expect(result[0].parts?.[0]).toEqual({ type: "text", text: "actual content" });
+  });
+
+  it("skips reasoning parts with empty or whitespace-only text", () => {
+    const parts = [
+      { id: "p1", sessionID: "s1", messageID: "m1", type: "reasoning" as const, text: "", time: { start: 1000 } },
+      { id: "p2", sessionID: "s1", messageID: "m1", type: "reasoning" as const, text: "  ", time: { start: 1000 } },
+      { id: "p3", sessionID: "s1", messageID: "m1", type: "reasoning" as const, text: "thinking about it", time: { start: 1000 } },
+    ] as Part[];
+    const result = mapOutputMessages(parts, redactor);
+    expect(result).toHaveLength(1);
+    expect(result[0].parts?.[0]).toEqual({ type: "thinking", thinking: "thinking about it" });
   });
 
   it("maps error ToolParts with is_error flag", () => {
