@@ -8,7 +8,12 @@ import type { Redactor } from "./redact.js";
 
 export type { GenerationResult };
 
-/** Map user-side parts to Sigil input messages. No redaction. */
+/**
+ * Map user-side parts to Sigil input messages. No redaction applied — user text is the
+ * user's own data and Sigil needs it verbatim for prompt analysis. Tier 1 patterns in
+ * user text (e.g., pasted connection strings) are a known accepted gap; apply redaction
+ * here if this becomes a problem.
+ */
 export function mapInputMessages(parts: Part[]): Message[] {
   const messages: Message[] = [];
   for (const part of parts) {
@@ -87,12 +92,14 @@ export function mapOutputMessages(parts: Part[], redactor: Redactor): Message[] 
   return messages;
 }
 
-/** Convert opencode tool name map to Sigil ToolDefinition array. */
+/** Convert opencode tool name map to Sigil ToolDefinition array. Only includes enabled tools. */
 export function mapToolDefinitions(
   tools: Record<string, boolean> | undefined,
 ): ToolDefinition[] {
   if (!tools) return [];
-  return Object.keys(tools).map((name) => ({ name }));
+  return Object.entries(tools)
+    .filter(([, enabled]) => enabled)
+    .map(([name]) => ({ name }));
 }
 
 /** Map an AssistantMessage + parts to a Sigil GenerationResult with content. */

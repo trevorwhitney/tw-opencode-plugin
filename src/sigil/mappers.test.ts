@@ -112,11 +112,13 @@ describe("mapOutputMessages", () => {
 });
 
 describe("mapToolDefinitions", () => {
-  it("maps tool name map to ToolDefinition array", () => {
+  it("maps enabled tools to ToolDefinition array, excludes disabled", () => {
     const tools = { bash: true, read: true, write: false };
     const result = mapToolDefinitions(tools);
-    expect(result).toHaveLength(3);
+    expect(result).toHaveLength(2);
     expect(result.map((t) => t.name)).toContain("bash");
+    expect(result.map((t) => t.name)).toContain("read");
+    expect(result.map((t) => t.name)).not.toContain("write");
   });
 
   it("returns empty array for undefined", () => {

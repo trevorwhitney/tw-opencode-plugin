@@ -1,5 +1,6 @@
 import type { SigilConfig } from "../shared/config.js";
 import type { PluginInput } from "@opencode-ai/plugin";
+import type { UserMessage, Part } from "@opencode-ai/sdk";
 import { createSigilClient } from "./client.js";
 import { handleEvent, handleLifecycle, handleChatMessage } from "./hooks.js";
 import { Redactor } from "./redact.js";
@@ -12,7 +13,7 @@ export type SigilHooks = {
   event: (input: { event: { type: string; properties: unknown } }) => Promise<void>;
   chatMessage: (
     input: { sessionID: string },
-    output: { message: any; parts: any[] },
+    output: { message: UserMessage; parts: Part[] },
   ) => void;
 };
 

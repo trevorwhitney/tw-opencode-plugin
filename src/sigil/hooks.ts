@@ -31,10 +31,14 @@ export function handleChatMessage(
   input: { sessionID: string },
   output: { message: UserMessage; parts: Part[] },
 ): void {
+  // UserMessage has `system` and `tools` at runtime but the SDK types don't expose them.
+  // Cast through `unknown` to access these undocumented fields. If the SDK adds proper
+  // types, replace these casts. Gracefully produces `undefined` if fields are absent.
+  const msg = output.message as unknown as { system?: string; tools?: Record<string, boolean> };
   pendingGenerations.set(input.sessionID, {
-    systemPrompt: (output.message as unknown as { system?: string }).system,
+    systemPrompt: msg.system,
     userParts: output.parts,
-    tools: (output.message as unknown as { tools?: Record<string, boolean> }).tools,
+    tools: msg.tools,
   });
 }
 
@@ -79,23 +83,23 @@ export async function handleEvent(
 
   const contentCapture = config.contentCapture ?? true;
 
-  const seed = contentCapture
-    ? {
-        conversationId: assistantMsg.sessionID,
-        agentName: buildAgentName(config.agentName, assistantMsg.mode),
-        agentVersion: config.agentVersion,
-        model: { provider: assistantMsg.providerID, name: assistantMsg.modelID },
-        startedAt: new Date(assistantMsg.time.created),
-        systemPrompt: pending?.systemPrompt,
-        tools: mapToolDefinitions(pending?.tools),
-      }
-    : {
-        conversationId: assistantMsg.sessionID,
-        agentName: buildAgentName(config.agentName, assistantMsg.mode),
-        agentVersion: config.agentVersion,
-        model: { provider: assistantMsg.providerID, name: assistantMsg.modelID },
-        startedAt: new Date(assistantMsg.time.created),
-      };
+  const seed = {
+    conversationId: assistantMsg.sessionID,
+    agentName: buildAgentName(config.agentName, assistantMsg.mode),
+    agentVersion: config.agentVersion,
+    model: { provider: assistantMsg.providerID, name: assistantMsg.modelID },
+    startedAt: new Date(assistantMsg.time.created),
+    ...(contentCapture && {
+      systemPrompt: pending?.systemPrompt,
+      tools: mapToolDefinitions(pending?.tools),
+    }),
+  };
+
+  // When contentCapture is enabled, map full content with redaction;
+  // otherwise fall back to metadata-only result (no message content).
+  const result = contentCapture
+    ? mapGeneration(assistantMsg, pending?.userParts ?? [], assistantParts, redactor)
+    : mapGeneration(assistantMsg, [], [], redactor);
 
   try {
     if (assistantMsg.error) {
@@ -103,22 +107,6 @@ export async function handleEvent(
         recorder.setCallError(mapError(assistantMsg.error!));
       });
     } else {
-      const result = contentCapture
-        ? mapGeneration(assistantMsg, pending?.userParts ?? [], assistantParts, redactor)
-        : {
-            output: [] as [],
-            usage: {
-              inputTokens: assistantMsg.tokens.input,
-              outputTokens: assistantMsg.tokens.output,
-              reasoningTokens: assistantMsg.tokens.reasoning,
-              cacheReadInputTokens: assistantMsg.tokens.cache.read,
-              cacheCreationInputTokens: assistantMsg.tokens.cache.write,
-            },
-            responseModel: assistantMsg.modelID,
-            stopReason: assistantMsg.finish,
-            completedAt: assistantMsg.time.completed ? new Date(assistantMsg.time.completed) : undefined,
-            metadata: { cost: assistantMsg.cost },
-          };
       await sigil.startGeneration(seed, async (recorder) => {
         recorder.setResult(result);
       });

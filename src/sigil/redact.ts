@@ -30,8 +30,10 @@ const TIER1_PATTERNS: SecretPattern[] = [
   // Anthropic
   { id: "anthropic-api-key", regex: /\bsk-ant-api03-[a-zA-Z0-9_-]{93}AA/g, tier: 1 },
   { id: "anthropic-admin-key", regex: /\bsk-ant-admin01-[a-zA-Z0-9_-]{93}AA/g, tier: 1 },
-  // OpenAI
+  // OpenAI (legacy format + modern sk-proj-/sk-svcacct- formats)
   { id: "openai-api-key", regex: /\bsk-[a-zA-Z0-9]{20}T3BlbkFJ[a-zA-Z0-9]{20}/g, tier: 1 },
+  { id: "openai-project-key", regex: /\bsk-proj-[a-zA-Z0-9_-]{40,}/g, tier: 1 },
+  { id: "openai-svcacct-key", regex: /\bsk-svcacct-[a-zA-Z0-9_-]{40,}/g, tier: 1 },
   // GCP
   { id: "gcp-api-key", regex: /\bAIza[A-Za-z0-9_-]{35}/g, tier: 1 },
   // PEM private keys
@@ -63,6 +65,13 @@ const TIER2_PATTERNS: SecretPattern[] = [
   },
 ];
 
+/**
+ * Note: Pattern arrays are shared by reference across Redactor instances.
+ * This is safe because: (1) there's a single Redactor instance in production,
+ * (2) JS is single-threaded so .replace() completes synchronously, and
+ * (3) lastIndex is reset before each replace call. If this class is ever used
+ * in workers or multiple instances, clone regexes in the constructor.
+ */
 export class Redactor {
   private tier1 = TIER1_PATTERNS;
   private tier2 = TIER2_PATTERNS;
