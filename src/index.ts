@@ -3,7 +3,7 @@ import { loadReviewConfig } from "./review/config.js";
 import { loadPluginConfig } from "./shared/config.js";
 import { createSigilHooks } from "./sigil/index.js";
 import { runReviewPipeline } from "./review/pipeline.js";
-import { codeReviewPrompts, planReviewPrompts } from "./review/prompts/index.js";
+import { codeReviewPrompts, planReviewPrompts, specReviewPrompts } from "./review/prompts/index.js";
 import type { EventSessionCompacted } from "@opencode-ai/sdk";
 import {
   loadCommands,
@@ -120,16 +120,20 @@ export const TwOpenCodePlugin: Plugin = async ({ $, client }) => {
         description:
           "Run a dual-reviewer pipeline. Two agents independently review the target, " +
           "then cross-examine each other's findings. Returns all review rounds for synthesis. " +
-          "Use this tool when the user runs /code-review or /plan-review.",
+          "Use this tool when the user runs /code-review, /plan-review, or /spec-review.",
         args: {
-          type: tool.schema.enum(["code-review", "plan-review"]),
+          type: tool.schema.enum(["code-review", "plan-review", "spec-review"]),
           target: tool.schema.string().describe(
-            "The review target — a PR URL, file paths, commit range, or description of what to review"
+            "The review target — a PR URL, file paths, commit range, spec content, or description of what to review"
           ),
         },
         async execute(args, context) {
           const prompts =
-            args.type === "code-review" ? codeReviewPrompts : planReviewPrompts;
+            args.type === "code-review"
+              ? codeReviewPrompts
+              : args.type === "plan-review"
+                ? planReviewPrompts
+                : specReviewPrompts;
           const config = await loadReviewConfig();
 
           const synthesisText = await runReviewPipeline(

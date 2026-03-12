@@ -115,12 +115,18 @@ link_item "${PLUGIN_DIR}/dist/index.js" \
 
 # ── Superpowers ───────────────────────────────────────────────
 SUPERPOWERS_DIR="${OPENCODE_DIR}/superpowers"
-SUPERPOWERS_REPO="https://github.com/obra/superpowers.git"
+SUPERPOWERS_REPO="https://github.com/trevorwhitney/superpowers.git"
 
 echo ""
 echo "Superpowers:"
 
 if [ -d "$SUPERPOWERS_DIR/.git" ]; then
+	# Ensure we're pointed at the right remote (handles switch from upstream to fork)
+	current_remote="$(git -C "$SUPERPOWERS_DIR" remote get-url origin 2>/dev/null || true)"
+	if [ "$current_remote" != "$SUPERPOWERS_REPO" ]; then
+		echo "  [update] switching superpowers remote to ${SUPERPOWERS_REPO}"
+		git -C "$SUPERPOWERS_DIR" remote set-url origin "$SUPERPOWERS_REPO"
+	fi
 	echo "  [update] pulling latest superpowers..."
 	git -C "$SUPERPOWERS_DIR" pull --ff-only --quiet
 else
@@ -137,9 +143,7 @@ link_item "${SUPERPOWERS_DIR}/.opencode/plugins/superpowers.js" \
 	"${PLUGINS_TARGET}/superpowers.js" \
 	"superpowers plugin"
 
-# Copy superpowers skills individually (skip skills overridden by plugin)
-SUPERPOWERS_SKIP_SKILLS="subagent-driven-development writing-plans"
-
+# Copy superpowers skills
 if [ -L "${SKILLS_TARGET}/superpowers" ]; then
 	echo "  [migrate] removing old superpowers directory symlink"
 	rm "${SKILLS_TARGET}/superpowers"
@@ -149,13 +153,15 @@ mkdir -p "${SKILLS_TARGET}/superpowers"
 for sp_skill_dir in "${SUPERPOWERS_DIR}/skills"/*/; do
 	[ -d "$sp_skill_dir" ] || continue
 	sp_skill_name="$(basename "$sp_skill_dir")"
-	case " $SUPERPOWERS_SKIP_SKILLS " in
-	*" $sp_skill_name "*)
-		echo "  [skip] superpowers/${sp_skill_name} (overridden by plugin)"
-		continue
-		;;
-	esac
 	copy_dir "$sp_skill_dir" "${SKILLS_TARGET}/superpowers/${sp_skill_name}" "superpowers/${sp_skill_name}"
+done
+
+# Clean up stale plugin skill overrides (these now come from superpowers fork)
+for stale_skill in writing-plans subagent-driven-development; do
+	if [ -d "${SKILLS_TARGET}/${stale_skill}" ]; then
+		echo "  [remove] stale plugin skill override: ${stale_skill}"
+		rm -rf "${SKILLS_TARGET}/${stale_skill}"
+	fi
 done
 
 # Copy superpowers commands
