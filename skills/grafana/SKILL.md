@@ -17,28 +17,24 @@ Use this skill when you need to query Grafana for metrics, logs, traces, alerts,
 
 ## Configured Instances
 
-| Instance | URL |
-|----------|-----|
-| `ops` | https://ops.grafana-ops.net |
-| `twhitney` | *(personal instance)* |
+Discover available instances:
 
-If not yet authenticated: `grafana-assistant auth --instance <name>`
-Switch instance: `grafana-assistant config use-instance <name>`
-List instances: `grafana-assistant config list`
+```bash
+grafana-assistant config list
+```
+
+Authenticate: `grafana-assistant auth --instance <name>`
+Switch default: `grafana-assistant config use-instance <name>`
+
+Use `-i <instance>` to target a specific instance in queries.
 
 ## Default Context for This Project
 
-Always include these in queries unless told otherwise. The correct datasources and namespace depend on which instance (`-i`) is being used:
+Always include datasource in queries unless told otherwise. Include namespace when the targeted instance requires it (shared/ops instances typically do; personal instances typically do not). The correct values depend on which instance (`-i`) you are targeting.
 
-### Instance: `ops` (`-i ops`)
-
-- **Datasources**: `grafanacloud-ops-logs`, `grafanacloud-ops-traces`, `grafanacloud-ops-prom`, `grafanacloud-ops-profiles`
-- **Namespace**: `loki-ops-002`
-
-### Instance: `twhitney` (`-i twhitney`)
-
-- **Datasources**: `grafanacloud-logs`, `grafanacloud-traces`, `grafanacloud-prom`, `grafanacloud-profiles`
-- **Namespace**: *(none — do not include a namespace filter)*
+- Run `grafana-assistant config list` to discover available instances
+- Each instance has its own datasource names (check instance configuration for the correct prefix)
+- Check your project's CLAUDE.md or configuration for instance-specific datasource and namespace mappings
 
 ## Querying
 
@@ -57,7 +53,7 @@ grafana-assistant prompt "follow-up" --continue --json
 | `--continue` | Continue previous conversation |
 | `--context <id>` | Resume a specific conversation by `contextId` |
 | `--timeout <s>` | Increase timeout for complex queries (default 300) |
-| `-i`, `--instance <name>` | Target a specific instance (`ops` or `twhitney`) |
+| `-i`, `--instance <name>` | Target a specific instance (see `grafana-assistant config list`) |
 
 ## Workflow
 
@@ -66,13 +62,13 @@ grafana-assistant prompt "follow-up" --continue --json
 Every query must name the datasource and namespace explicitly. Vague queries hit the wrong datasource.
 
 ```bash
-# Good — ops instance
-grafana-assistant prompt "Using grafanacloud-ops-prom, show CPU usage for namespace loki-ops-002 over the last hour" -i ops --json
+# Good — specifies datasource, namespace, and instance
+grafana-assistant prompt "Using <datasource>, show CPU usage for namespace <namespace> over the last hour" -i <instance> --json
 
-# Good — twhitney instance (no namespace needed)
-grafana-assistant prompt "Using grafanacloud-prom, show CPU usage over the last hour" -i twhitney --json
+# Good — personal instance where namespace is not needed
+grafana-assistant prompt "Using <datasource>, show CPU usage over the last hour" -i <instance> --json
 
-# Bad - missing datasource
+# Bad — missing datasource
 grafana-assistant prompt "show CPU usage" --json
 ```
 
@@ -94,34 +90,23 @@ Note: Panel references like `[panel:p1]` only render in the Grafana UI, not in C
 
 ## Example Queries
 
-### Using `-i ops`
+### Instance-Specific Queries
 
 ```bash
-# Alerts
-grafana-assistant prompt "List all firing alerts in namespace loki-ops-002" -i ops --json
+# Alerts (include namespace if the instance requires it)
+grafana-assistant prompt "List all firing alerts in namespace <namespace>" -i <instance> --json
 
 # Metrics
-grafana-assistant prompt "Using grafanacloud-ops-prom, show CPU usage for namespace loki-ops-002 over the last hour" -i ops --json
+grafana-assistant prompt "Using <datasource-prom>, show CPU usage for namespace <namespace> over the last hour" -i <instance> --json
 
 # Logs
-grafana-assistant prompt "Using grafanacloud-ops-logs, show error logs from namespace loki-ops-002 in the last 15 minutes" -i ops --json
+grafana-assistant prompt "Using <datasource-logs>, show error logs from namespace <namespace> in the last 15 minutes" -i <instance> --json
 
 # Traces
-grafana-assistant prompt "Using grafanacloud-ops-traces, find slow requests in namespace loki-ops-002 over the last 30 minutes" -i ops --json
+grafana-assistant prompt "Using <datasource-traces>, find slow requests in namespace <namespace> over the last 30 minutes" -i <instance> --json
 ```
 
-### Using `-i twhitney`
-
-```bash
-# Metrics
-grafana-assistant prompt "Using grafanacloud-prom, show CPU usage over the last hour" -i twhitney --json
-
-# Logs
-grafana-assistant prompt "Using grafanacloud-logs, show error logs in the last 15 minutes" -i twhitney --json
-
-# Traces
-grafana-assistant prompt "Using grafanacloud-traces, find slow requests over the last 30 minutes" -i twhitney --json
-```
+Replace `<instance>`, `<datasource-*>`, and `<namespace>` with values from your configured instance. Omit the namespace clause if the instance does not require one.
 
 ### General
 
@@ -136,8 +121,8 @@ grafana-assistant prompt "Drill into the top error from that result" --continue 
 ## Common Mistakes to Avoid
 
 - **Missing datasource** — always include `"using <datasource>"` in the query
-- **Missing namespace** — always include `"for namespace loki-ops-002"` when using `-i ops`; do **not** add a namespace when using `-i twhitney`
-- **Wrong datasource prefix** — use `grafanacloud-ops-*` for `-i ops` and `grafanacloud-*` (without `ops`) for `-i twhitney`
+- **Missing namespace** — always include the namespace when the target instance requires it (shared/ops instances typically do; personal instances typically do not)
+- **Wrong datasource prefix** — each instance has its own datasource naming convention; verify with `grafana-assistant config list`
 - **Vague time ranges** — always say "last 1h", "last 15m", etc.
 - **Long conversation chains** — drop `--continue` when switching topics
 - **Forgetting `--json`** — always pass it for structured output

@@ -42,7 +42,7 @@ Add the local path to the `plugin` array in `~/.config/opencode/opencode.json`:
 ```json
 {
   "plugin": [
-    "file:/Users/twhitney/workspace/tw-opencode-plugin",
+    "file:/path/to/tw-opencode-plugin",
     "oh-my-opencode@latest"
   ]
 }
@@ -59,7 +59,7 @@ OpenCode discovers slash commands from plugins registered in the Claude Code plu
     "tw": [
       {
         "scope": "user",
-        "installPath": "/Users/twhitney/workspace/tw-opencode-plugin",
+        "installPath": "/path/to/tw-opencode-plugin",
         "version": "0.1.0",
         "installedAt": "2026-03-04T19:40:00.000Z",
         "lastUpdated": "2026-03-04T19:40:00.000Z"

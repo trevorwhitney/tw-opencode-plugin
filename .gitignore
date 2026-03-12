@@ -7,3 +7,13 @@ dist/
 # Dolt database files (added by bd init)
 .dolt/
 *.db
+
+# Secrets and certificates
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Beads runtime data
+.beads/
