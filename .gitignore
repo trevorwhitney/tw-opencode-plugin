@@ -1,6 +1,7 @@
 node_modules/
 dist/
 *.tgz
+!vendor/*.tgz
 .DS_Store
 
 # Dolt database files (added by bd init)
