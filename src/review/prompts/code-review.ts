@@ -1,5 +1,5 @@
-import { CROSS_REVIEW_INSTRUCTIONS_A, CROSS_REVIEW_INSTRUCTIONS_B } from "./shared.js";
-import type { PromptSet } from "../types.js";
+import { crossReviewInstructions, formatOtherReviews } from "./shared.js";
+import type { PromptSet, LabeledReview, ReviewerLabel } from "../types.js";
 
 export const CODE_REVIEW_INSTRUCTIONS = `\
 # Code Review Instructions
@@ -102,59 +102,41 @@ Also note **strengths** — what is well done. Be specific with file references.
 - Invent issues to appear thorough — if the code is good, say so`;
 
 export const codeReviewPrompts: PromptSet = {
-  round1A(target: string): string {
+  round1(label: ReviewerLabel, target: string): string {
     return (
-      "You are Reviewer A — an experienced engineer performing an independent code review.\n\n" +
+      `You are ${label} — an experienced engineer performing an independent code review.\n\n` +
       CODE_REVIEW_INSTRUCTIONS +
       "\n\nReview target:\n" +
       target
     );
   },
 
-  round1B(target: string): string {
+  round2(label: ReviewerLabel, ownReview: string, otherReviews: LabeledReview[]): string {
+    const otherCount = otherReviews.length;
+    const otherLabels = otherReviews.map((r) => r.label).join(" and ");
     return (
-      "You are Reviewer B — an experienced engineer performing an independent code review.\n\n" +
-      CODE_REVIEW_INSTRUCTIONS +
-      "\n\nReview target:\n" +
-      target
-    );
-  },
-
-  round2A(r1a: string, r1b: string): string {
-    return (
-      "You are Reviewer A. You and another experienced engineer (Reviewer B) independently reviewed the same code. Now compare notes.\n\n" +
+      `You are ${label}. You and ${otherCount} other experienced engineer${otherCount > 1 ? "s" : ""} (${otherLabels}) independently reviewed the same code. Now compare notes.\n\n` +
       "Your review:\n\n" +
-      r1a +
-      "\n\nReviewer B's review:\n\n" +
-      r1b +
+      ownReview +
       "\n\n" +
-      CROSS_REVIEW_INSTRUCTIONS_A
+      formatOtherReviews(otherReviews) +
+      "\n\n" +
+      crossReviewInstructions(otherReviews)
     );
   },
 
-  round2B(r1a: string, r1b: string): string {
-    return (
-      "You are Reviewer B. You and another experienced engineer (Reviewer A) independently reviewed the same code. Now compare notes.\n\n" +
-      "Your review:\n\n" +
-      r1b +
-      "\n\nReviewer A's review:\n\n" +
-      r1a +
-      "\n\n" +
-      CROSS_REVIEW_INSTRUCTIONS_B
-    );
-  },
+  synthesis(results): string {
+    const rounds = results
+      .map(
+        (r) =>
+          `Round 1 — ${r.label} (independent review): ${r.round1}\n` +
+          `Round 2 — ${r.label} (cross-review): ${r.round2}`,
+      )
+      .join("\n");
 
-  synthesis(r1a: string, r1b: string, r2a: string, r2b: string): string {
     return (
-      "You have the complete conversation between two experienced reviewers who independently reviewed the code and then discussed their findings.\n\n" +
-      "Round 1 — Reviewer A (independent review): " +
-      r1a +
-      "\nRound 1 — Reviewer B (independent review): " +
-      r1b +
-      "\nRound 2 — Reviewer A (cross-review): " +
-      r2a +
-      "\nRound 2 — Reviewer B (cross-review): " +
-      r2b +
+      `You have the complete conversation between ${results.length} experienced reviewers who independently reviewed the code and then discussed their findings.\n\n` +
+      rounds +
       "\n\nSynthesize into a final code review report. Include ONLY findings where the reviewers reached agreement or where the evidence clearly supports the finding. For each:\n" +
       "- Category (bug/security/performance/design/complexity/duplication/testing)\n" +
       "- Severity (critical/high/medium/low)\n" +

@@ -18,8 +18,7 @@ export type SigilConfig = {
 };
 
 export type ReviewConfig = {
-  agentA: string;
-  agentB: string;
+  agents: string[];
 };
 
 export type PluginConfig = {
@@ -30,8 +29,7 @@ export type PluginConfig = {
 const CONFIG_PATH = join(homedir(), ".config", "opencode", "tw-plugin.json");
 
 const REVIEW_DEFAULTS: ReviewConfig = {
-  agentA: "critic-codex",
-  agentB: "critic-opus",
+  agents: ["critic-codex", "critic-opus", "critic-gemini"],
 };
 
 export function parseSigilConfig(raw: unknown): SigilConfig | undefined {
@@ -53,11 +51,22 @@ export async function loadPluginConfig(): Promise<PluginConfig> {
   try {
     const raw = await readFile(CONFIG_PATH, "utf-8");
     const parsed = JSON.parse(raw);
+    const review = parsed?.review;
+    let agents: string[];
+    if (Array.isArray(review?.agents) && review.agents.length > 0) {
+      // New format: { agents: ["critic-codex", "critic-opus", "critic-gemini"] }
+      agents = review.agents;
+    } else if (review?.agentA || review?.agentB) {
+      // Legacy format: { agentA: "critic-codex", agentB: "critic-opus" }
+      agents = [
+        review.agentA ?? REVIEW_DEFAULTS.agents[0],
+        review.agentB ?? REVIEW_DEFAULTS.agents[1],
+      ];
+    } else {
+      agents = [...REVIEW_DEFAULTS.agents];
+    }
     return {
-      review: {
-        agentA: parsed?.review?.agentA ?? REVIEW_DEFAULTS.agentA,
-        agentB: parsed?.review?.agentB ?? REVIEW_DEFAULTS.agentB,
-      },
+      review: { agents },
       sigil: parseSigilConfig(parsed?.sigil),
     };
   } catch {

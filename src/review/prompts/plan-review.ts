@@ -1,4 +1,4 @@
-import type { PromptSet } from "../types.js";
+import type { PromptSet, LabeledReview, ReviewerLabel } from "../types.js";
 
 const PLAN_REVIEW_INSTRUCTIONS = `\
 Your prime directive: THE SIMPLEST PLAN THAT SOLVES THE TASK IS THE BEST PLAN.
@@ -20,86 +20,65 @@ Be specific: reference section names, step numbers, and quote the plan. Explain 
 Bias toward REMOVING things. A shorter plan that solves the task is always better than a thorough plan that over-delivers.`;
 
 const PLAN_DISCUSSION_RULES = `\
-No performative agreement -- don't say things like "great point" or "you're absolutely right." If you change your mind, state what convinced you. If the other critic is wrong, quote the plan to prove it.`;
+No performative agreement -- don't say things like "great point" or "you're absolutely right." If you change your mind, state what convinced you. If another critic is wrong, quote the plan to prove it.`;
 
-const PLAN_CROSS_REVIEW_INSTRUCTIONS_A = `\
+function planCrossReviewInstructions(otherReviews: LabeledReview[]): string {
+  const otherLabels = otherReviews.map((r) => r.label).join(", ");
+  return `\
 Respond as a peer:
-- Where do you agree with Critic B?
+- Where do you agree with ${otherLabels}?
 - Where do you disagree, and why? Provide evidence (quote the plan).
-- Did Critic B catch something you missed? Acknowledge it.
+- Did any of them catch something you missed? Acknowledge it.
 - Did they miss something important? Point it out.
 - Where severity assessments differ, explain your reasoning.
 
 The goal is accuracy, not winning.
 
 ${PLAN_DISCUSSION_RULES}`;
+}
 
-const PLAN_CROSS_REVIEW_INSTRUCTIONS_B = `\
-Respond as a peer:
-- Where do you agree with Critic A?
-- Where do you disagree, and why? Provide evidence (quote the plan).
-- Did Critic A catch something you missed? Acknowledge it.
-- Did they miss something important? Point it out.
-- Where severity assessments differ, explain your reasoning.
-
-The goal is accuracy, not winning.
-
-${PLAN_DISCUSSION_RULES}`;
+function formatOtherCritiques(otherReviews: LabeledReview[]): string {
+  return otherReviews
+    .map((r) => `${r.label}'s critique:\n\n${r.text}`)
+    .join("\n\n");
+}
 
 export const planReviewPrompts: PromptSet = {
-  round1A(target: string): string {
+  round1(label: ReviewerLabel, target: string): string {
     return (
-      "You are Critic A — an experienced engineer performing an independent plan critique.\n\n" +
+      `You are ${label} — an experienced engineer performing an independent plan critique.\n\n` +
       PLAN_REVIEW_INSTRUCTIONS +
       "\n\nPlan to critique:\n" +
       target
     );
   },
 
-  round1B(target: string): string {
+  round2(label: ReviewerLabel, ownReview: string, otherReviews: LabeledReview[]): string {
+    const otherCount = otherReviews.length;
+    const otherLabels = otherReviews.map((r) => r.label).join(" and ");
     return (
-      "You are Critic B — an experienced engineer performing an independent plan critique.\n\n" +
-      PLAN_REVIEW_INSTRUCTIONS +
-      "\n\nPlan to critique:\n" +
-      target
-    );
-  },
-
-  round2A(r1a: string, r1b: string): string {
-    return (
-      "You are Critic A. You and another experienced engineer (Critic B) independently critiqued the same plan. Now compare notes.\n\n" +
+      `You are ${label}. You and ${otherCount} other experienced engineer${otherCount > 1 ? "s" : ""} (${otherLabels}) independently critiqued the same plan. Now compare notes.\n\n` +
       "Your critique:\n\n" +
-      r1a +
-      "\n\nCritic B's critique:\n\n" +
-      r1b +
+      ownReview +
       "\n\n" +
-      PLAN_CROSS_REVIEW_INSTRUCTIONS_A
+      formatOtherCritiques(otherReviews) +
+      "\n\n" +
+      planCrossReviewInstructions(otherReviews)
     );
   },
 
-  round2B(r1a: string, r1b: string): string {
-    return (
-      "You are Critic B. You and another experienced engineer (Critic A) independently critiqued the same plan. Now compare notes.\n\n" +
-      "Your critique:\n\n" +
-      r1b +
-      "\n\nCritic A's critique:\n\n" +
-      r1a +
-      "\n\n" +
-      PLAN_CROSS_REVIEW_INSTRUCTIONS_B
-    );
-  },
+  synthesis(results): string {
+    const rounds = results
+      .map(
+        (r) =>
+          `Round 1 — ${r.label} (independent critique): ${r.round1}\n` +
+          `Round 2 — ${r.label} (cross-review): ${r.round2}`,
+      )
+      .join("\n");
 
-  synthesis(r1a: string, r1b: string, r2a: string, r2b: string): string {
     return (
-      "You have the complete discussion between two experienced engineers who independently critiqued the plan and then compared notes.\n\n" +
-      "Round 1 — Critic A (independent critique): " +
-      r1a +
-      "\nRound 1 — Critic B (independent critique): " +
-      r1b +
-      "\nRound 2 — Critic A (cross-review): " +
-      r2a +
-      "\nRound 2 — Critic B (cross-review): " +
-      r2b +
+      `You have the complete discussion between ${results.length} experienced engineers who independently critiqued the plan and then compared notes.\n\n` +
+      rounds +
       "\n\nSynthesize into a final plan critique. Include ONLY findings where the critics reached agreement or where the evidence clearly supports the finding.\n\n" +
       "## Part 1: Surviving Findings\n\n" +
       "For each finding:\n" +

@@ -1,4 +1,4 @@
-import type { PromptSet } from "../types.js";
+import type { PromptSet, LabeledReview, ReviewerLabel } from "../types.js";
 
 const SPEC_REVIEW_INSTRUCTIONS = `\
 Your prime directive: A SPEC WITH HOLES WILL PRODUCE A BAD PLAN. Find the holes.
@@ -22,89 +22,68 @@ Be specific: reference section names, quote the spec. Explain WHY each issue mat
 Bias toward flagging incompleteness. A shorter, complete spec is always better than a longer spec with gaps.`;
 
 const SPEC_DISCUSSION_RULES = `\
-No performative agreement -- don't say things like "great point" or "you're absolutely right." If you change your mind, state what convinced you. If the other reviewer is wrong, quote the spec to prove it.`;
+No performative agreement -- don't say things like "great point" or "you're absolutely right." If you change your mind, state what convinced you. If another reviewer is wrong, quote the spec to prove it.`;
 
-const SPEC_CROSS_REVIEW_INSTRUCTIONS_A = `\
+function specCrossReviewInstructions(otherReviews: LabeledReview[]): string {
+  const otherLabels = otherReviews.map((r) => r.label).join(", ");
+  return `\
 Respond as a peer:
-- Where do you agree with Reviewer B?
+- Where do you agree with ${otherLabels}?
 - Where do you disagree, and why? Provide evidence (quote the spec).
-- Did Reviewer B catch something you missed? Acknowledge it.
+- Did any of them catch something you missed? Acknowledge it.
 - Did they miss something important? Point it out.
 - Where severity assessments differ, explain your reasoning.
 
 The goal is accuracy, not winning.
 
 ${SPEC_DISCUSSION_RULES}`;
+}
 
-const SPEC_CROSS_REVIEW_INSTRUCTIONS_B = `\
-Respond as a peer:
-- Where do you agree with Reviewer A?
-- Where do you disagree, and why? Provide evidence (quote the spec).
-- Did Reviewer A catch something you missed? Acknowledge it.
-- Did they miss something important? Point it out.
-- Where severity assessments differ, explain your reasoning.
-
-The goal is accuracy, not winning.
-
-${SPEC_DISCUSSION_RULES}`;
+function formatOtherReviews(otherReviews: LabeledReview[]): string {
+  return otherReviews
+    .map((r) => `${r.label}'s review:\n\n${r.text}`)
+    .join("\n\n");
+}
 
 export const specReviewPrompts: PromptSet = {
-  round1A(target: string): string {
+  round1(label: ReviewerLabel, target: string): string {
     return (
-      "You are Reviewer A — an experienced engineer performing an independent spec review.\n\n" +
+      `You are ${label} — an experienced engineer performing an independent spec review.\n\n` +
       SPEC_REVIEW_INSTRUCTIONS +
       "\n\nSpec to review:\n" +
       target
     );
   },
 
-  round1B(target: string): string {
+  round2(label: ReviewerLabel, ownReview: string, otherReviews: LabeledReview[]): string {
+    const otherCount = otherReviews.length;
+    const otherLabels = otherReviews.map((r) => r.label).join(" and ");
     return (
-      "You are Reviewer B — an experienced engineer performing an independent spec review.\n\n" +
-      SPEC_REVIEW_INSTRUCTIONS +
-      "\n\nSpec to review:\n" +
-      target
-    );
-  },
-
-  round2A(r1a: string, r1b: string): string {
-    return (
-      "You are Reviewer A. You and another experienced engineer (Reviewer B) independently reviewed the same spec. Now compare notes.\n\n" +
+      `You are ${label}. You and ${otherCount} other experienced engineer${otherCount > 1 ? "s" : ""} (${otherLabels}) independently reviewed the same spec. Now compare notes.\n\n` +
       "Your review:\n\n" +
-      r1a +
-      "\n\nReviewer B's review:\n\n" +
-      r1b +
+      ownReview +
       "\n\n" +
-      SPEC_CROSS_REVIEW_INSTRUCTIONS_A
+      formatOtherReviews(otherReviews) +
+      "\n\n" +
+      specCrossReviewInstructions(otherReviews)
     );
   },
 
-  round2B(r1a: string, r1b: string): string {
-    return (
-      "You are Reviewer B. You and another experienced engineer (Reviewer A) independently reviewed the same spec. Now compare notes.\n\n" +
-      "Your review:\n\n" +
-      r1b +
-      "\n\nReviewer A's review:\n\n" +
-      r1a +
-      "\n\n" +
-      SPEC_CROSS_REVIEW_INSTRUCTIONS_B
-    );
-  },
+  synthesis(results): string {
+    const rounds = results
+      .map(
+        (r) =>
+          `Round 1 — ${r.label} (independent review): ${r.round1}\n` +
+          `Round 2 — ${r.label} (cross-review): ${r.round2}`,
+      )
+      .join("\n");
 
-  synthesis(r1a: string, r1b: string, r2a: string, r2b: string): string {
     return (
-      "You have the complete discussion between two experienced engineers who independently reviewed the spec and then compared notes.\n\n" +
-      "Round 1 — Reviewer A (independent review): " +
-      r1a +
-      "\nRound 1 — Reviewer B (independent review): " +
-      r1b +
-      "\nRound 2 — Reviewer A (cross-review): " +
-      r2a +
-      "\nRound 2 — Reviewer B (cross-review): " +
-      r2b +
+      `You have the complete discussion between ${results.length} experienced engineers who independently reviewed the spec and then compared notes.\n\n` +
+      rounds +
       "\n\nSynthesize into a final spec review report. Include ONLY findings where the reviewers reached agreement or where the evidence clearly supports the finding.\n\n" +
       "## Spec Review\n\n" +
-      "**Status:** ✅ Approved | ❌ Issues Found\n\n" +
+      "**Status:** Approved | Issues Found\n\n" +
       "**Surviving Findings (if any):**\n" +
       "For each finding:\n" +
       "- Category (completeness/coverage/consistency/clarity/yagni/scope/architecture)\n" +

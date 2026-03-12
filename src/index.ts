@@ -118,7 +118,7 @@ export const TwOpenCodePlugin: Plugin = async ({ $, client }) => {
     tool: {
       "review-pipeline": tool({
         description:
-          "Run a dual-reviewer pipeline. Two agents independently review the target, " +
+          "Run a multi-reviewer pipeline. Configured agents independently review the target, " +
           "then cross-examine each other's findings. Returns all review rounds for synthesis. " +
           "Use this tool when the user runs /code-review, /plan-review, or /spec-review.",
         args: {
