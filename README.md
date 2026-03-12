@@ -35,43 +35,7 @@ npm install
 npm run build
 ```
 
-#### 2. Register the plugin
-
-Add the local path to the `plugin` array in `~/.config/opencode/opencode.json`:
-
-```json
-{
-  "plugin": [
-    "file:/path/to/tw-opencode-plugin",
-    "oh-my-opencode@latest"
-  ]
-}
-```
-
-#### 3. Register in the Claude plugin DB
-
-OpenCode discovers slash commands from plugins registered in the Claude Code plugin database. Add an entry for `tw` in `~/.claude/plugins/installed_plugins.json` so that the `commands/` directory is picked up:
-
-```json
-{
-  "version": 2,
-  "plugins": {
-    "tw": [
-      {
-        "scope": "user",
-        "installPath": "/path/to/tw-opencode-plugin",
-        "version": "0.1.0",
-        "installedAt": "2026-03-04T19:40:00.000Z",
-        "lastUpdated": "2026-03-04T19:40:00.000Z"
-      }
-    ]
-  }
-}
-```
-
-The `"tw"` key must match the `name` field in `.claude-plugin/plugin.json`. Once registered, commands in `commands/` are available as `/tw:<command-name>` (e.g. `/tw:code-review`).
-
-#### 4. Restart OpenCode
+#### 2. Restart OpenCode
 
 Restart OpenCode to pick up the plugin and skill changes.
 
@@ -85,8 +49,7 @@ Two approaches are available:
 claude --plugin-dir /path/to/tw-plugin
 ```
 
-**Persistent install** — run the deploy script, which registers the plugin in
-`~/.claude/plugins/installed_plugins.json` and enables it in `~/.claude/settings.json`:
+**Persistent install** — run the deploy script, which registers the plugin in `~/.claude/plugins/installed_plugins.json` and enables it in `~/.claude/settings.json`:
 
 ```bash
 npm run deploy
@@ -94,20 +57,19 @@ npm run deploy
 bash scripts/deploy.sh
 ```
 
-After install, skills are available as slash commands prefixed with `/tw:`
-(e.g. `/tw:code-review`).
+After install, skills are available as slash commands prefixed with `/tw:` (e.g. `/tw:code-review`).
 
 ## Platform differences
 
-| Feature | OpenCode | Claude Code |
-|---|---|---|
-| Skills | Yes | Yes |
-| Commands (slash) | Yes | Yes (prefixed `/tw:`) |
-| Agents | Yes | Yes |
-| Custom tools (review pipeline) | Yes | No (requires JS plugin SDK) |
-| Beads integration | Yes | No (requires JS hooks) |
-| Workmux status | Yes | No (separate CC hooks in settings.json) |
-| Tool-priority rules | Via system prompt injection | Via CLAUDE.md |
+| Feature                        | OpenCode                    | Claude Code                             |
+| ------------------------------ | --------------------------- | --------------------------------------- |
+| Skills                         | Yes                         | Yes                                     |
+| Commands (slash)               | Yes                         | Yes (prefixed `/tw:`)                   |
+| Agents                         | Yes                         | Yes                                     |
+| Custom tools (review pipeline) | Yes                         | No (requires JS plugin SDK)             |
+| Beads integration              | Yes                         | No (requires JS hooks)                  |
+| Workmux status                 | Yes                         | No (separate CC hooks in settings.json) |
+| Tool-priority rules            | Via system prompt injection | Via CLAUDE.md                           |
 
 ## Development
 
@@ -163,21 +125,20 @@ description: Short description of the command.
 argument-hint: "<required-arg>"
 ---
 
-Command template that the agent receives when `/command-name` is invoked.
-Use `$ARGUMENTS` to reference the user's input.
+Command template that the agent receives when `/command-name` is invoked. Use `$ARGUMENTS` to reference the user's input.
 ```
 
 ### Skill frontmatter reference
 
-| Field            | Type       | Description                                      |
-|------------------|------------|--------------------------------------------------|
-| `name`           | string     | Skill identifier (matches directory name)        |
-| `description`    | string     | Shown in the skill picker                        |
-| `model`          | string?    | Override the model used when skill is active      |
-| `agent`          | string?    | Restrict to a specific agent                     |
-| `argument-hint`  | string?    | Hint shown when skill accepts arguments          |
-| `allowed-tools`  | string[]?  | Restrict which tools the skill can use           |
-| `subtask`        | boolean?   | Whether this skill runs as a subtask             |
+| Field           | Type      | Description                                  |
+| --------------- | --------- | -------------------------------------------- |
+| `name`          | string    | Skill identifier (matches directory name)    |
+| `description`   | string    | Shown in the skill picker                    |
+| `model`         | string?   | Override the model used when skill is active |
+| `agent`         | string?   | Restrict to a specific agent                 |
+| `argument-hint` | string?   | Hint shown when skill accepts arguments      |
+| `allowed-tools` | string[]? | Restrict which tools the skill can use       |
+| `subtask`       | boolean?  | Whether this skill runs as a subtask         |
 
 ## Useful commands
 
