@@ -51,6 +51,11 @@ When querying Grafana for metrics, logs, traces, alerts, or dashboards:
    - \`grafana-assistant\` fails or returns an error
    - You need an MCP-only operation (creating/updating dashboards, alert rules, or incidents)
    - The user explicitly asks you to use a specific MCP tool
+
+### Worktrees
+
+Place worktrees as siblings to this project directory, under \`~/workspace/project/\`.
+For example, a worktree tracking branch \`foo\` should go to \`~/workspace/project/foo\`.
 </tool-priority-rules>`;
 
 export const TwOpenCodePlugin: Plugin = async ({ $, client }) => {
