@@ -21,19 +21,22 @@ async function runSubagent(
   agent: string,
   title: string,
   prompt: string,
+  timeoutMs: number,
 ): Promise<PhaseResult> {
   for (let attempt = 0; attempt < 2; attempt++) {
+    let sessionId: string | undefined;
     try {
       const session = await client.session.create({
         body: { parentID, title },
       });
-      const sessionId = session.data!.id;
+      sessionId = session.data!.id;
       const result = await client.session.prompt({
         path: { id: sessionId },
         body: {
           agent,
           parts: [{ type: "text" as const, text: prompt }],
         },
+        signal: AbortSignal.timeout(timeoutMs),
       });
       const text = result.data!.parts
         .filter((p): p is TextPart => p.type === "text")
@@ -41,8 +44,22 @@ async function runSubagent(
         .join("\n");
       return { text };
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const isTimeout = err instanceof DOMException && err.name === "TimeoutError";
+      const message = isTimeout
+        ? `timed out after ${Math.round(timeoutMs / 1000)}s`
+        : err instanceof Error ? err.message : String(err);
+
+      // Best-effort abort so the session doesn't keep running in the background
+      if (sessionId && isTimeout) {
+        client.session.abort({ path: { id: sessionId } }).catch(() => {});
+      }
+
       if (attempt === 0) {
+        // Don't retry timeouts — if it timed out once, it'll likely time out again
+        if (isTimeout) {
+          console.warn(`[review] ${agent} ${message} — degrading gracefully`);
+          return { text: "", error: message };
+        }
         console.warn(`[review] ${agent} failed (${message}), retrying in ${RETRY_DELAY_MS / 1000}s...`);
         await sleep(RETRY_DELAY_MS);
         continue;
@@ -65,6 +82,8 @@ export async function runReviewPipeline(
   const agents = config.agents;
   const labels = agents.map((_, i) => reviewerLabel(i));
 
+  const { timeoutMs } = config;
+
   // Phase 1: parallel independent reviews
   const round1Results = await Promise.all(
     agents.map((agent, i) =>
@@ -74,6 +93,7 @@ export async function runReviewPipeline(
         agent,
         `Round 1 — ${labels[i]}`,
         prompts.round1(labels[i], target),
+        timeoutMs,
       ),
     ),
   );
@@ -97,6 +117,7 @@ export async function runReviewPipeline(
       agents[i],
       `Round 2 — ${labels[i]}`,
       prompts.round2(labels[i], round1Results[i].text, otherReviews),
+      timeoutMs,
     ).then((result) => {
       round2Results[i] = result;
     });

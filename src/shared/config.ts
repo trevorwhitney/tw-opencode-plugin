@@ -4,6 +4,8 @@ import { homedir } from "os";
 
 export type ReviewConfig = {
   agents: string[];
+  /** Per-agent timeout in milliseconds. Default: 300_000 (5 minutes). */
+  timeoutMs: number;
 };
 
 export type PluginConfig = {
@@ -12,8 +14,11 @@ export type PluginConfig = {
 
 const CONFIG_PATH = join(homedir(), ".config", "opencode", "tw-plugin.json");
 
+const DEFAULT_TIMEOUT_MS = 300_000; // 5 minutes
+
 const REVIEW_DEFAULTS: ReviewConfig = {
   agents: ["critic-codex", "critic-opus", "critic-gemini"],
+  timeoutMs: DEFAULT_TIMEOUT_MS,
 };
 
 export async function loadPluginConfig(): Promise<PluginConfig> {
@@ -34,10 +39,15 @@ export async function loadPluginConfig(): Promise<PluginConfig> {
     } else {
       agents = [...REVIEW_DEFAULTS.agents];
     }
+    const timeoutMs =
+      typeof review?.timeoutMs === "number" && review.timeoutMs > 0
+        ? review.timeoutMs
+        : DEFAULT_TIMEOUT_MS;
+
     return {
-      review: { agents },
+      review: { agents, timeoutMs },
     };
   } catch {
-    return { review: { ...REVIEW_DEFAULTS } };
+    return { review: { ...REVIEW_DEFAULTS, timeoutMs: DEFAULT_TIMEOUT_MS } };
   }
 }
