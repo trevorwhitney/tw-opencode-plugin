@@ -17,7 +17,7 @@ const CONFIG_PATH = join(homedir(), ".config", "opencode", "tw-plugin.json");
 const DEFAULT_TIMEOUT_MS = 300_000; // 5 minutes
 
 const REVIEW_DEFAULTS: ReviewConfig = {
-  agents: ["critic-codex", "critic-opus", "critic-gemini"],
+  agents: ["critic-codex", "critic-opus", "critic-sonnet"],
   timeoutMs: DEFAULT_TIMEOUT_MS,
 };
 

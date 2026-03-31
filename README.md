@@ -140,6 +140,45 @@ Command template that the agent receives when `/command-name` is invoked. Use `$
 | `allowed-tools` | string[]? | Restrict which tools the skill can use       |
 | `subtask`       | boolean?  | Whether this skill runs as a subtask         |
 
+## Configuration
+
+The review pipeline (used by `/code-review`, `/plan-review`, `/spec-review`) is configured via `~/.config/opencode/tw-plugin.json`.
+
+### Review critics
+
+Choose which critic agents participate in reviews by listing them in the `review.agents` array. Available critics:
+
+- `critic-codex` — OpenAI Codex
+- `critic-opus` — Anthropic Opus
+- `critic-gemini` — Google Gemini
+- `critic-sonnet` — Anthropic Sonnet
+
+Example config:
+
+```json
+{
+  "review": {
+    "agents": ["critic-sonnet", "critic-opus", "critic-codex"]
+  }
+}
+```
+
+If no config file is present, the defaults are used:
+
+```json
+{
+  "review": {
+    "agents": ["critic-codex", "critic-opus", "critic-gemini"],
+    "timeoutMs": 300000
+  }
+}
+```
+
+| Field              | Type       | Default                                        | Description                          |
+| ------------------ | ---------- | ---------------------------------------------- | ------------------------------------ |
+| `review.agents`    | `string[]` | `["critic-codex", "critic-opus", "critic-gemini"]` | Critic agents to use in reviews  |
+| `review.timeoutMs` | `number`   | `300000` (5 min)                               | Per-agent timeout in milliseconds    |
+
 ## Useful commands
 
 ```bash
