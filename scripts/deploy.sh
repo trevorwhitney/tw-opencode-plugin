@@ -103,6 +103,11 @@ for agent_file in "${PLUGIN_DIR}/agents"/*.md; do
 	copy_item "$agent_file" "${AGENTS_TARGET}/${agent_name}" "$agent_name"
 done
 
+# ── AGENTS.md (global config) ─────────────────────────────────
+echo ""
+echo "AGENTS.md:"
+link_item "${PLUGIN_DIR}/AGENTS.md" "${OPENCODE_DIR}/AGENTS.md" "AGENTS.md"
+
 # ── Plugin (built JS) ─────────────────────────────────────────
 PLUGINS_TARGET="${OPENCODE_DIR}/plugins"
 mkdir -p "$PLUGINS_TARGET"
@@ -213,39 +218,39 @@ echo "Claude Code:"
 mkdir -p "$CLAUDE_PLUGINS_DIR"
 
 if [ ! -f "$CLAUDE_PLUGINS_JSON" ]; then
-    echo '{"version": 2, "plugins": {}}' > "$CLAUDE_PLUGINS_JSON"
-    echo "  [create] installed_plugins.json"
+	echo '{"version": 2, "plugins": {}}' >"$CLAUDE_PLUGINS_JSON"
+	echo "  [create] installed_plugins.json"
 fi
 
 if command -v jq &>/dev/null; then
-    TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
-    PLUGIN_VERSION="$(jq -r '.version // "0.1.0"' "${PLUGIN_DIR}/.claude-plugin/plugin.json")"
+	TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
+	PLUGIN_VERSION="$(jq -r '.version // "0.1.0"' "${PLUGIN_DIR}/.claude-plugin/plugin.json")"
 
-    jq --arg path "$PLUGIN_DIR" \
-       --arg version "$PLUGIN_VERSION" \
-       --arg ts "$TIMESTAMP" \
-       '.plugins.tw = [{
+	jq --arg path "$PLUGIN_DIR" \
+		--arg version "$PLUGIN_VERSION" \
+		--arg ts "$TIMESTAMP" \
+		'.plugins.tw = [{
          "scope": "user",
          "installPath": $path,
          "version": $version,
          "installedAt": $ts,
          "lastUpdated": $ts
-       }]' "$CLAUDE_PLUGINS_JSON" > "${CLAUDE_PLUGINS_JSON}.tmp" \
-    && mv "${CLAUDE_PLUGINS_JSON}.tmp" "$CLAUDE_PLUGINS_JSON"
-    echo "  [register] tw plugin (${PLUGIN_DIR})"
+       }]' "$CLAUDE_PLUGINS_JSON" >"${CLAUDE_PLUGINS_JSON}.tmp" &&
+		mv "${CLAUDE_PLUGINS_JSON}.tmp" "$CLAUDE_PLUGINS_JSON"
+	echo "  [register] tw plugin (${PLUGIN_DIR})"
 
-    # Enable the plugin in Claude Code settings
-    if [ -f "$CLAUDE_SETTINGS" ]; then
-        if ! jq -e '.enabledPlugins.tw // false' "$CLAUDE_SETTINGS" >/dev/null 2>&1; then
-            jq '.enabledPlugins.tw = true' "$CLAUDE_SETTINGS" > "${CLAUDE_SETTINGS}.tmp" \
-            && mv "${CLAUDE_SETTINGS}.tmp" "$CLAUDE_SETTINGS"
-            echo "  [enable] tw in settings.json"
-        else
-            echo "  [skip] tw already enabled in settings.json"
-        fi
-    fi
+	# Enable the plugin in Claude Code settings
+	if [ -f "$CLAUDE_SETTINGS" ]; then
+		if ! jq -e '.enabledPlugins.tw // false' "$CLAUDE_SETTINGS" >/dev/null 2>&1; then
+			jq '.enabledPlugins.tw = true' "$CLAUDE_SETTINGS" >"${CLAUDE_SETTINGS}.tmp" &&
+				mv "${CLAUDE_SETTINGS}.tmp" "$CLAUDE_SETTINGS"
+			echo "  [enable] tw in settings.json"
+		else
+			echo "  [skip] tw already enabled in settings.json"
+		fi
+	fi
 else
-    echo "  [skip] jq not found, cannot register Claude Code plugin"
+	echo "  [skip] jq not found, cannot register Claude Code plugin"
 fi
 
 echo ""
