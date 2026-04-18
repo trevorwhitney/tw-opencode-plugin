@@ -30,11 +30,9 @@ Use this template:
 - [Key change 1]
 - [Key change 2]
 - [Key change 3]
-
-## Testing
-
-[How you verified it works]
 ```
+
+If there were specs or implementation plans that were generated when planning on the feautre, please include a brief summary of the specification/plan that was followed in collapsible content at the bottom of the PR.
 
 Guidelines:
 
@@ -49,11 +47,13 @@ Guidelines:
 1. Write a short PR title (max 72 characters)
 
 2. Ensure the branch is pushed:
+
    ```bash
    git push -u origin HEAD
    ```
 
 3. Open PR creation in browser (do NOT create directly):
+
    ```bash
    gh pr create --web --title "<title>" --body "<body>"
    ```
