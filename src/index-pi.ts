@@ -1,15 +1,15 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
 import { StringEnum } from "@mariozechner/pi-ai";
-import { TOOL_PRIORITY_RULES } from "../tool-priority-rules.js";
-import { loadReviewConfig } from "../review/config.js";
-import { runReviewPipeline } from "../review/pipeline.js";
+import { TOOL_PRIORITY_RULES } from "./tool-priority-rules.js";
+import { loadReviewConfig } from "./review/config.js";
+import { runReviewPipeline } from "./review/pipeline.js";
 import {
   codeReviewPrompts,
   planReviewPrompts,
   specReviewPrompts,
-} from "../review/prompts/index.js";
-import { createPiRunner } from "./runner.js";
+} from "./review/prompts/index.js";
+import { createPiRunner } from "./pi/runner.js";
 
 export default function (pi: ExtensionAPI) {
   // Inject tool priority rules into every system prompt

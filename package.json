@@ -14,7 +14,7 @@
       "types": "./dist/opencode/index.d.ts",
       "import": "./dist/opencode/index.js"
     },
-    "./pi": "./src/pi/index.ts"
+    "./pi": "./src/index-pi.ts"
   },
   "files": [
     "dist"

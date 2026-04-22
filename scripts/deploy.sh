@@ -290,12 +290,17 @@ if [ -d "${SUPERPOWERS_DIR}/agents" ]; then
 	done
 fi
 
-# Pi extension (symlink — jiti loads TS directly)
+# Pi extension — symlink src/ as the extension directory.
+# Pi's jiti loader picks up index-pi.ts via the pi.extensions manifest
+# in src/pi-package.json (symlinked as package.json inside the extension).
+# Since index-pi.ts lives at the src/ root alongside its dependencies
+# (tool-priority-rules.ts, review/, shared/, pi/runner.ts), all imports
+# resolve naturally with no extra symlinks.
 PI_EXTENSIONS="${PI_AGENT_DIR}/extensions"
-mkdir -p "${PI_EXTENSIONS}/tw-plugin"
-link_item "${PLUGIN_DIR}/src/pi/index.ts" \
-	"${PI_EXTENSIONS}/tw-plugin/index.ts" \
-	"extension: tw-plugin"
+PI_EXT_DIR="${PI_EXTENSIONS}/tw-plugin"
+link_item "${PLUGIN_DIR}/src" \
+	"${PI_EXT_DIR}" \
+	"extension: tw-plugin -> src/"
 
 # Pi prompt templates
 mkdir -p "$PI_PROMPTS"
@@ -312,7 +317,7 @@ for f in "${PLUGIN_DIR}/pi-agents"/*.md; do
 done
 
 # Cleanup stale pi symlinks
-for dir in "$PI_SKILLS" "${PI_SKILLS}/superpowers" "$PI_PROMPTS" "$PI_AGENTS" "${PI_EXTENSIONS}/tw-plugin"; do
+for dir in "$PI_SKILLS" "${PI_SKILLS}/superpowers" "$PI_PROMPTS" "$PI_AGENTS" "$PI_EXTENSIONS"; do
 	[ -d "$dir" ] || continue
 	for entry in "$dir"/*; do
 		[ -L "$entry" ] || continue
