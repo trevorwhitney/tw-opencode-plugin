@@ -3,13 +3,18 @@
   "version": "0.1.0",
   "description": "Personal OpenCode plugin — central home for skills, commands, and custom tools",
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/opencode/index.js",
+  "types": "dist/opencode/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
+      "types": "./dist/opencode/index.d.ts",
+      "import": "./dist/opencode/index.js"
+    },
+    "./opencode": {
+      "types": "./dist/opencode/index.d.ts",
+      "import": "./dist/opencode/index.js"
+    },
+    "./pi": "./src/pi/index.ts"
   },
   "files": [
     "dist"

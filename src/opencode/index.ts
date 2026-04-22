@@ -1,16 +1,17 @@
 import { type Plugin, tool } from "@opencode-ai/plugin";
-import { loadReviewConfig } from "./review/config.js";
-import { runReviewPipeline } from "./review/pipeline.js";
-import { codeReviewPrompts, planReviewPrompts, specReviewPrompts } from "./review/prompts/index.js";
+import { loadReviewConfig } from "../review/config.js";
+import { runReviewPipeline } from "../review/pipeline.js";
+import { codeReviewPrompts, planReviewPrompts, specReviewPrompts } from "../review/prompts/index.js";
 import type { EventSessionCompacted } from "@opencode-ai/sdk";
 import {
   loadCommands,
   loadAgent,
   createBeadsContextManager,
   BEADS_AWARENESS,
-} from "./beads/index.js";
-import { loadCommands as loadWorkmuxCommands } from "./workmux/index.js";
-import { TOOL_PRIORITY_RULES } from "./tool-priority-rules.js";
+} from "../beads/index.js";
+import { loadCommands as loadWorkmuxCommands } from "../workmux/index.js";
+import { TOOL_PRIORITY_RULES } from "../tool-priority-rules.js";
+import { createOpencodeRunner } from "./runner.js";
 
 export const TwOpenCodePlugin: Plugin = async ({ $, client }) => {
   const [beadsCommands, beadsAgents, workmuxCommands] = await Promise.all([
@@ -85,9 +86,9 @@ export const TwOpenCodePlugin: Plugin = async ({ $, client }) => {
                 : specReviewPrompts;
           const config = await loadReviewConfig();
 
+          const runner = createOpencodeRunner(client, context.sessionID);
           const synthesisText = await runReviewPipeline(
-            client,
-            context.sessionID,
+            runner,
             args.target,
             prompts,
             config,
