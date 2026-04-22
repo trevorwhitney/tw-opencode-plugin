@@ -29,3 +29,11 @@ export type PhaseResult = {
   text: string;
   error?: string;
 };
+
+/** Platform-agnostic subagent invocation callback. */
+export type RunSubagent = (
+  agent: string,
+  title: string,
+  prompt: string,
+  timeoutMs: number,
+) => Promise<PhaseResult>;
