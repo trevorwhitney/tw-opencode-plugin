@@ -37,6 +37,9 @@
     "@opencode-ai/plugin": "^1.2.16"
   },
   "devDependencies": {
+    "@mariozechner/pi-ai": "^0.68.1",
+    "@mariozechner/pi-coding-agent": "^0.68.1",
+    "@sinclair/typebox": "^0.34.49",
     "@types/node": "^22.13.9",
     "husky": "^9.1.7",
     "typescript": "^5.8.2",
