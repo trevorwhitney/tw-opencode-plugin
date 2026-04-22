@@ -12,7 +12,7 @@ export type PluginConfig = {
   review: ReviewConfig;
 };
 
-const CONFIG_PATH = join(homedir(), ".config", "opencode", "tw-plugin.json");
+const CONFIG_PATH = join(homedir(), ".config", "tw-plugin.json");
 
 const DEFAULT_TIMEOUT_MS = 300_000; // 5 minutes
 
