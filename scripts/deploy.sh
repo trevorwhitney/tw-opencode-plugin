@@ -114,7 +114,7 @@ mkdir -p "$PLUGINS_TARGET"
 
 echo ""
 echo "Plugin:"
-link_item "${PLUGIN_DIR}/dist/index.js" \
+link_item "${PLUGIN_DIR}/dist/opencode/index.js" \
 	"${PLUGINS_TARGET}/tw-opencode-plugin.js" \
 	"tw-opencode-plugin"
 
@@ -253,5 +253,75 @@ else
 	echo "  [skip] jq not found, cannot register Claude Code plugin"
 fi
 
+# ── Pi Coding Agent ────────────────────────────────────────────
+PI_AGENT_DIR="${HOME}/.pi/agent"
+PI_SKILLS="${PI_AGENT_DIR}/skills"
+PI_PROMPTS="${PI_AGENT_DIR}/prompts"
+PI_AGENTS="${PI_AGENT_DIR}/agents"
+
 echo ""
-echo "Done. Restart OpenCode and/or Claude Code to pick up changes."
+echo "Pi:"
+
+# Skills (same files as OpenCode)
+mkdir -p "$PI_SKILLS"
+for skill_dir in "${PLUGIN_DIR}/skills"/*/; do
+	[ -d "$skill_dir" ] || continue
+	skill_name="$(basename "$skill_dir")"
+	copy_dir "$skill_dir" "${PI_SKILLS}/${skill_name}" "${skill_name}"
+done
+
+# Superpowers skills
+if [ -d "${SUPERPOWERS_DIR}/skills" ]; then
+	mkdir -p "${PI_SKILLS}/superpowers"
+	for sp_skill_dir in "${SUPERPOWERS_DIR}/skills"/*/; do
+		[ -d "$sp_skill_dir" ] || continue
+		sp_skill_name="$(basename "$sp_skill_dir")"
+		copy_dir "$sp_skill_dir" "${PI_SKILLS}/superpowers/${sp_skill_name}" "superpowers/${sp_skill_name}"
+	done
+fi
+
+# Superpowers agents
+if [ -d "${SUPERPOWERS_DIR}/agents" ]; then
+	mkdir -p "$PI_AGENTS"
+	for agent_file in "${SUPERPOWERS_DIR}/agents"/*.md; do
+		[ -f "$agent_file" ] || continue
+		agent_name="$(basename "$agent_file")"
+		copy_item "$agent_file" "${PI_AGENTS}/${agent_name}" "superpowers agent: ${agent_name}"
+	done
+fi
+
+# Pi extension (symlink — jiti loads TS directly)
+PI_EXTENSIONS="${PI_AGENT_DIR}/extensions"
+mkdir -p "${PI_EXTENSIONS}/tw-plugin"
+link_item "${PLUGIN_DIR}/src/pi/index.ts" \
+	"${PI_EXTENSIONS}/tw-plugin/index.ts" \
+	"extension: tw-plugin"
+
+# Pi prompt templates
+mkdir -p "$PI_PROMPTS"
+for f in "${PLUGIN_DIR}/prompts"/*.md; do
+	[ -f "$f" ] || continue
+	copy_item "$f" "${PI_PROMPTS}/$(basename "$f")" "prompt: $(basename "$f")"
+done
+
+# Pi agents (plugin-specific)
+mkdir -p "$PI_AGENTS"
+for f in "${PLUGIN_DIR}/pi-agents"/*.md; do
+	[ -f "$f" ] || continue
+	copy_item "$f" "${PI_AGENTS}/$(basename "$f")" "agent: $(basename "$f")"
+done
+
+# Cleanup stale pi symlinks
+for dir in "$PI_SKILLS" "${PI_SKILLS}/superpowers" "$PI_PROMPTS" "$PI_AGENTS" "${PI_EXTENSIONS}/tw-plugin"; do
+	[ -d "$dir" ] || continue
+	for entry in "$dir"/*; do
+		[ -L "$entry" ] || continue
+		if [ ! -e "$entry" ]; then
+			echo "  [remove] stale symlink: $(basename "$entry")"
+			rm "$entry"
+		fi
+	done
+done
+
+echo ""
+echo "Done. Restart OpenCode, Claude Code, and/or Pi to pick up changes."
